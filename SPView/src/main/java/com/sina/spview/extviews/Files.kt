@@ -203,4 +203,18 @@ object FileUtils {
     fun getFileNameFromPath(filePath: String): String {
         return filePath.substringAfterLast("/")
     }
+
+
+    fun Uri.toFilePath(context: Context): String? {
+        val projection = arrayOf(MediaStore.Images.Media.DATA) // Deprecated but needed for older versions
+
+        return context.contentResolver.query(this, projection, null, null, null)?.use {
+            if (it.moveToFirst()) {
+                val columnIndex = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+                it.getString(columnIndex)
+            } else {
+                null
+            }
+        }
+    }
 }

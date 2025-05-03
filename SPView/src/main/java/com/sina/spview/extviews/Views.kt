@@ -11,21 +11,26 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentResolver
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ImageDecoder
+import android.graphics.Matrix
 import android.graphics.Typeface
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextUtils
 import android.text.TextWatcher
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.LinearInterpolator
@@ -39,6 +44,8 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+import androidx.core.view.drawToBitmap
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -46,7 +53,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.sina.spview.extviews.StringExtension.fromURI
+import com.sina.spview.models.ScreenShot
 import org.jsoup.Jsoup
+import java.io.File
+import java.io.FileOutputStream
+import kotlin.math.roundToInt
 
 /**
  * A collection of extension functions to enhance the usage of Views and UI components.
@@ -209,23 +220,8 @@ object ViewExtensions {
         }
     }
 
-    fun List<Pair<View, Any>>.actionEach(action: (Any) -> Unit) {
-        forEach { (button, associatedAction) ->
-            button.setOnClickListener { action(associatedAction) }
-        }
-    }
 
 
-    fun Uri.createBitmap(context: Context): Bitmap? {
-        val contentResolver: ContentResolver = context.contentResolver
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val source = ImageDecoder.createSource(contentResolver, this)
-            ImageDecoder.decodeBitmap(source)
-        } else {
-            @Suppress("DEPRECATION")
-            MediaStore.Images.Media.getBitmap(contentResolver, this)
-        }
-    }
 
 
     fun View.setDrawableClickListener(
@@ -652,5 +648,162 @@ object ViewExtensions {
     fun View.invisible() {
         visibility = View.INVISIBLE
     }
+    fun Uri.createBitmap(context: Context): Bitmap? {
+        val contentResolver: ContentResolver = context.contentResolver
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val source = ImageDecoder.createSource(contentResolver, this)
+            ImageDecoder.decodeBitmap(source)
+        } else {
+            @Suppress("DEPRECATION")
+            MediaStore.Images.Media.getBitmap(contentResolver, this)
+        }
+    }
+
+    fun cropImageInPictures(context: Context, view: View, screenShotData: ScreenShot): Uri? {
+        val originalBitmap = view.drawToBitmap()
+
+        val srcWidth = originalBitmap.width
+        val srcHeight = originalBitmap.height
+
+        if (screenShotData.width == srcWidth && screenShotData.height == srcHeight) {
+            return null
+        }
+
+        val scale = (screenShotData.width.toFloat() / srcWidth).coerceAtLeast(screenShotData.height.toFloat() / srcHeight)
+        val m = Matrix()
+        m.setScale(scale, scale)
+
+        val srcCroppedW = (screenShotData.width / scale).roundToInt()
+        val srcCroppedH = (screenShotData.height / scale).roundToInt()
+        var srcX = (srcWidth * screenShotData.hCenterPercent - srcCroppedW / 2).toInt()
+        var srcY = (srcHeight * screenShotData.vCenterPercent - srcCroppedH / 2).toInt()
+
+        srcX = srcX.coerceAtMost(srcWidth - srcCroppedW).coerceAtLeast(0)
+        srcY = srcY.coerceAtMost(srcHeight - srcCroppedH).coerceAtLeast(0)
+
+        val croppedBitmap = Bitmap.createBitmap(originalBitmap, srcX, srcY, srcCroppedW, srcCroppedH)
+        originalBitmap.recycle()
+
+        // ✅ Fix: Use MediaStore to save the image without modifying _data
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "mapimage_${screenShotData.latitude}_${screenShotData.longitude}.jpg")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/${screenShotData.rootFolder}/${screenShotData.childFolder}")
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+
+        val contentResolver = context.contentResolver
+        val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+            ?: return null // ✅ Ensure URI is not null
+
+        try {
+            contentResolver.openOutputStream(imageUri)?.use { outputStream ->
+                croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            }
+            contentValues.clear()
+            contentValues.put(MediaStore.Images.Media.IS_PENDING, 0) // ✅ Mark the image as available
+            contentResolver.update(imageUri, contentValues, null, null)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            contentResolver.delete(imageUri, null, null) // ✅ Remove incomplete file if error occurs
+            return null
+        }
+
+        croppedBitmap.recycle()
+
+        return imageUri
+    }
+    fun saveImageToFileSystem(context: Context, bitmap: Bitmap, fileName: String, rootFolder: String, childFolder: String): Uri? {
+        val rootDir = File(Environment.getExternalStorageDirectory(), rootFolder)
+        val subDir = File(rootDir, childFolder)
+
+        if (!subDir.exists()) {
+            val success = subDir.mkdirs()
+            if (!success) {
+                Log.e("SaveImage", "Failed to create directory: ${subDir.absolutePath}")
+                return null
+            }
+        }
+
+        val file = File(subDir, fileName)
+        return try {
+            FileOutputStream(file).use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            }
+            MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), arrayOf("image/jpeg"), null)
+            file.toUri()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+    fun saveImageToMediaStore(context: Context, bitmap: Bitmap, fileName: String, primaryFolder: String, subFolder: String): Uri? {
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "$primaryFolder/$subFolder") // ✅ Save inside Pictures/Teamyar
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+
+        val contentResolver = context.contentResolver
+        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues) ?: return null
+
+        return try {
+            contentResolver.openOutputStream(uri)?.use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            }
+            contentValues.clear()
+            contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+            contentResolver.update(uri, contentValues, null, null)
+            uri
+        } catch (e: Exception) {
+            e.printStackTrace()
+            contentResolver.delete(uri, null, null)
+            null
+        }
+    }
+    fun cropImage(context: Context, view: View, screenShotData: ScreenShot): Uri? {
+        val originalBitmap = view.drawToBitmap()
+
+        val srcWidth = originalBitmap.width
+        val srcHeight = originalBitmap.height
+
+        if (screenShotData.width == srcWidth && screenShotData.height == srcHeight) {
+            Log.e("CropImage", "No need to crop, returning null")
+            return null
+        }
+
+        val scale = (screenShotData.width.toFloat() / srcWidth).coerceAtLeast(screenShotData.height.toFloat() / srcHeight)
+        val m = Matrix()
+        m.setScale(scale, scale)
+
+        val srcCroppedW = (screenShotData.width / scale).roundToInt()
+        val srcCroppedH = (screenShotData.height / scale).roundToInt()
+        var srcX = (srcWidth * screenShotData.hCenterPercent - srcCroppedW / 2).toInt()
+        var srcY = (srcHeight * screenShotData.vCenterPercent - srcCroppedH / 2).toInt()
+
+        srcX = srcX.coerceAtMost(srcWidth - srcCroppedW).coerceAtLeast(0)
+        srcY = srcY.coerceAtMost(srcHeight - srcCroppedH).coerceAtLeast(0)
+
+        val croppedBitmap = Bitmap.createBitmap(originalBitmap, srcX, srcY, srcCroppedW, srcCroppedH)
+        originalBitmap.recycle()
+
+        val fileName = "mapimage_${screenShotData.latitude}_${screenShotData.longitude}.jpg"
+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // ✅ Android 10+ (Scoped Storage, save inside `Pictures/Teamyar`)
+            saveImageToMediaStore(context, croppedBitmap, fileName, "Pictures", "${screenShotData.rootFolder}/${screenShotData.childFolder}")
+        } else {
+            // ✅ Android 9 and below (Direct File System)
+            saveImageToFileSystem(context, croppedBitmap, fileName, screenShotData.rootFolder, screenShotData.childFolder)
+        }
+    }
+
+    fun List<Pair<View, Any>>.actionEach(action: (Any) -> Unit) {
+        forEach { (button, associatedAction) ->
+            button.setOnClickListener { action(associatedAction) }
+        }
+    }
+
 
 }
