@@ -28,8 +28,11 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.text.Editable
+import android.text.Spannable
+import android.text.SpannableString
 import android.text.TextUtils
 import android.text.TextWatcher
+import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
@@ -37,6 +40,7 @@ import android.view.animation.LinearInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
@@ -57,7 +61,9 @@ import com.sina.spview.models.ScreenShot
 import org.jsoup.Jsoup
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * A collection of extension functions to enhance the usage of Views and UI components.
@@ -805,5 +811,90 @@ object ViewExtensions {
         }
     }
 
+
+    inline fun SearchView.onQueryTextChanged(crossinline listener: (String) -> Unit) {
+        this.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean = true
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                // If the text is null or empty, clear the search
+                listener.invoke(newText.orEmpty())
+                return true
+            }
+        })
+    }
+
+    fun TextView.setAppropriateTextAlignment(locale: String) {
+        if (locale == "fa" || locale == "Persian" || locale == "Fa") {
+            this.textDirection = View.TEXT_DIRECTION_RTL
+        } else {
+            this.textDirection = View.TEXT_DIRECTION_LTR
+        }
+    }
+
+    fun SearchView.applyTextColor(colorRes: Int) {
+        val color = ContextCompat.getColor(context, colorRes)
+        val searchTextViewId = resources.getIdentifier("android:id/search_src_text", null, null)
+        val searchTextView = findViewById<EditText>(searchTextViewId)
+        searchTextView?.setTextColor(color)
+        searchTextView?.setHintTextColor(color)
+    }
+
+    fun SearchView.applyStyling(textColor: Int, hintTextColor: Int, closeIconColor: Int) {
+        maxWidth = Integer.MAX_VALUE
+        val searchTextView = findViewById<TextView>(androidx.appcompat.R.id.search_src_text)
+        val searchHintIcon = findViewById<ImageView>(androidx.appcompat.R.id.search_button)
+        val searchClose = findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
+
+        searchTextView.apply {
+            setTextColor(textColor)
+            setHintTextColor(hintTextColor)
+        }
+        searchClose.setColorFilter(closeIconColor)
+        searchHintIcon.setColorFilter(closeIconColor)
+
+    }
+    fun TextView.highlightTextNew(textToHighlight: String, highlightColor: Int, defaultColor: Int) {
+        // Get the full text from the TextView
+        val fullText = this.text.toString()
+
+        // If the search keyword is empty, reset to default color
+        if (textToHighlight.isEmpty()) {
+            this.setTextColor(defaultColor) // Reset text color
+            this.text = fullText
+            return
+        }
+
+        // Find the index of the text to highlight
+        val startIndex = fullText.indexOf(textToHighlight, ignoreCase = true)
+
+        // Apply the highlight only if the textToHighlight is found and not empty
+        if (startIndex != -1) {
+            val endIndex = startIndex + textToHighlight.length
+            val spannableString = SpannableString(fullText)
+            val colorSpan = ForegroundColorSpan(highlightColor)
+            spannableString.setSpan(colorSpan, startIndex, endIndex, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            this.text = spannableString
+        } else {
+            // If text is not found, reset text color to default
+            this.setTextColor(defaultColor)
+            this.text = fullText
+        }
+    }
+    fun TextView.setAbbreviatedText(context: Context, text: String, maxSizeTablet: Int = 60, maxSizePhone: Int = 30) {
+        val metrics = context.resources.displayMetrics
+        val maxLength =
+            if (sqrt(
+                    (metrics.widthPixels / metrics.xdpi.toDouble()).pow(2.0)
+                            + (metrics.heightPixels / metrics.ydpi.toDouble()).pow(2.0)
+                ) > 7
+            )
+                maxSizeTablet else maxSizePhone
+        this.text = if (text.length > maxLength) {
+            "${text.substring(0, maxLength)}..."
+        } else {
+            text
+        }
+    }
 
 }

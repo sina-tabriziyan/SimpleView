@@ -26,11 +26,6 @@ object StringExtension {
 
     fun List<String>.findSidInHeaders(): String = this.find { it.startsWith("SID=") }?.substringBefore(";") ?: ""
     /** Extract latitude and longitude from a URL */
-    fun String.extractLatLon(): Pair<Double, Double>? {
-        val lat = "mlat=([\\d.]+)".toRegex().find(this)?.groupValues?.get(1)?.toDoubleOrNull()
-        val lon = "mlon=([\\d.]+)".toRegex().find(this)?.groupValues?.get(1)?.toDoubleOrNull()
-        return if (lat != null && lon != null) lat to lon else null
-    }
 
 
     fun String.convertHtmlToSpannableStringBuilder(): SpannableStringBuilder? {
@@ -85,6 +80,28 @@ object StringExtension {
                 }
             }
         } else null
+    }
+    fun String.extractLatLon1(): Pair<Double, Double>? {
+        val latPattern = "mlat=([\\d.]+)".toRegex()
+        val lonPattern = "mlon=([\\d.]+)".toRegex()
+
+        val latMatchResult = latPattern.find(this)
+        val lonMatchResult = lonPattern.find(this)
+
+        val lat = latMatchResult?.groups?.get(1)?.value?.toDoubleOrNull()
+        val lon = lonMatchResult?.groups?.get(1)?.value?.toDoubleOrNull()
+
+        return if (lat != null && lon != null) {
+            Pair(lat, lon)
+        } else {
+            null
+        }
+    }
+
+    fun String.extractLatLon2(): Pair<Double, Double>? {
+        val lat = "mlat=([\\d.]+)".toRegex().find(this)?.groupValues?.get(1)?.toDoubleOrNull()
+        val lon = "mlon=([\\d.]+)".toRegex().find(this)?.groupValues?.get(1)?.toDoubleOrNull()
+        return if (lat != null && lon != null) lat to lon else null
     }
 
 }
