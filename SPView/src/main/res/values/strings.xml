@@ -3,4 +3,6 @@
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
     <string name="txt_persian">persian</string>
+    <string name="txt_you">You</string>
+    <string name="txt_today">Today</string>
 </resources>

@@ -5,8 +5,8 @@
  */
 package com.sina.spview.states
 
-import com.sina.spview.states.donwload.DownloadFileUtils
-import com.sina.spview.states.donwload.ProgressListener
+import com.sina.spview.donwload.DownloadFileUtils
+import com.sina.spview.donwload.ProgressListener
 import kotlinx.coroutines.channels.Channel
 import okhttp3.MediaType
 import okhttp3.ResponseBody

@@ -3,7 +3,7 @@
  * Author: Sina Tabriziyan
  * @sina.tabriziyan@gmail.com
  */
-package com.sina.spview.states.donwload
+package com.sina.spview.donwload
 
 import com.sina.spview.states.ProgressResponseBody
 import okhttp3.Interceptor

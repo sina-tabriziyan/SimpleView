@@ -1,4 +1,4 @@
-package com.sina.spview.states.donwload
+package com.sina.spview.donwload
 
 import kotlinx.coroutines.channels.Channel
 
