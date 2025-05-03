@@ -228,7 +228,7 @@ object ViewExtensions {
     }
 
 
-    fun AppCompatEditText.setDrawableClickListener(
+    fun View.setDrawableClickListener(
         onDrawableStartClick: (() -> Unit)? = null,
         onDrawableTopClick: (() -> Unit)? = null,
         onDrawableEndClick: (() -> Unit)? = null,
