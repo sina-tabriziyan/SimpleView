@@ -5,29 +5,48 @@
  */
 package com.sina.spview.extviews
 
+import android.animation.ArgbEvaluator
 import android.animation.ObjectAnimator
+import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ImageDecoder
+import android.graphics.Typeface
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
+import android.text.Editable
+import android.text.TextUtils
+import android.text.TextWatcher
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.LinearInterpolator
 import android.view.inputmethod.InputMethodManager
+import android.widget.AdapterView
+import android.widget.EditText
 import android.widget.SeekBar
+import android.widget.Spinner
+import android.widget.TextView
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.sina.spview.extviews.StringExtension.fromURI
+import org.jsoup.Jsoup
 
 /**
  * A collection of extension functions to enhance the usage of Views and UI components.
@@ -271,4 +290,367 @@ object ViewExtensions {
             false
         }
     }
+
+    fun getStringResourceByName(context: Context, aString: String): String {
+        val resId = context.resources.getIdentifier(aString, "string", context.packageName)
+
+        // Check if resId is valid
+        return if (resId != 0) {
+            context.getString(resId)
+        } else {
+            // Handle the case when the resource is not found, for example, return a default value or log an error
+            "Resource not found"
+        }
+    }
+
+    /**
+     * Extension function for EditText to listen for text changes and detect typing status.
+     *
+     * @param onTextChanged Callback function invoked with the current text and typing status.
+     */
+    fun EditText.onTextTypingStatusChanged(onTextChanged: (text: String, isTyping: Boolean) -> Unit) {
+        val typingDelayMillis = 1000L // Delay to determine typing has stopped
+        val handler = Handler(Looper.getMainLooper())
+        var isTyping = false
+
+        val typingTimeout = Runnable {
+            isTyping = false
+            onTextChanged(this.text.toString(), isTyping)
+        }
+
+        this.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                // No action needed here
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                // No action needed here
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                handler.removeCallbacks(typingTimeout)
+                if (!isTyping) {
+                    isTyping = true
+                    onTextChanged(s?.toString().orEmpty(), isTyping)
+                }
+                handler.postDelayed(typingTimeout, typingDelayMillis)
+            }
+        })
+    }
+
+
+    fun Spinner.onItemSelected(action: (parent: AdapterView<*>, view: View?, position: Int, id: Long) -> Unit) {
+        this.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                action(parent, view, position, id)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>) {
+                // No action needed
+            }
+        }
+    }
+
+    fun TextView.setIconBuilder(icon: String, color: Int) {
+        val teamTypeface = Typeface.createFromAsset(this.context.assets, "teamyarfont.ttf")
+        val iconTeamyar = String(Character.toChars(icon.toInt(16)))
+        this.apply {
+            typeface = teamTypeface
+            text = iconTeamyar
+            setTextColor(ContextCompat.getColor(this.context, color))
+        }
+    }
+
+    fun AppBarLayout.onAppBarLayoutStateChange(
+        onCollapsing: () -> Unit,
+        onNotCollapsing: () -> Unit
+    ) {
+        addOnOffsetChangedListener { appBarLayout, verticalOffset ->
+            if (kotlin.math.abs(verticalOffset) == appBarLayout.totalScrollRange) onCollapsing()  // Call the collapsing lambda
+            else onNotCollapsing()  // Call the not collapsing lambda
+        }
+    }
+
+    fun RecyclerView.scrollToPositionWithHighlight(
+        position: Int,
+        highlightColor: Int,
+        originalColor: Int,
+        duration: Long = 2000L // Duration of the animation (2 seconds)
+    ) {
+        // Scroll to the desired position
+        scrollToPosition(position)
+
+        // Wait for the RecyclerView to complete its layout
+        post {
+            val viewHolder = findViewHolderForAdapterPosition(position) ?: return@post
+
+            // Animate the background color transition
+            ObjectAnimator.ofObject(
+                viewHolder.itemView,
+                "backgroundColor",
+                ArgbEvaluator(),
+                highlightColor,
+                originalColor
+            ).apply {
+                this.duration = duration
+                start()
+            }
+        }
+    }
+
+    fun TextView.isBold(isBold: Boolean) {
+        val style = if (isBold) Typeface.BOLD else Typeface.NORMAL
+        this.setTypeface(null, style)
+    }
+
+
+    inline fun DrawerLayout.onDrawerOpened(crossinline action: () -> Unit) {
+        addDrawerListener(object : DrawerLayout.DrawerListener {
+            override fun onDrawerOpened(drawerView: View) {
+                action()
+            }
+
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
+            override fun onDrawerClosed(drawerView: View) {}
+            override fun onDrawerStateChanged(newState: Int) {}
+        })
+    }
+
+    fun convertDrawableToBitmap(drawable: Drawable): Bitmap? {
+        if (drawable is BitmapDrawable) {
+            return drawable.bitmap
+        }
+        var bitmap: Bitmap? = null
+        try {
+            bitmap = Bitmap.createBitmap(drawable.intrinsicWidth, drawable.minimumHeight, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return bitmap
+    }
+    fun AppCompatEditText.onTyping(action: (Boolean) -> Unit) {
+        this.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                // No need to handle this
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                // Only trigger if text is actually typed (not set programmatically)
+                if (before != count) {
+                    action(s?.isNotEmpty() == true)
+                }
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                // No need to handle this
+            }
+        })
+    }
+
+    fun AppCompatEditText.onEmpty(action: (Boolean) -> Unit) {
+        this.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                // No need to handle this
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                // When text changes, check if it's empty
+                action(s.isNullOrEmpty())
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                // No need to handle this
+            }
+        })
+    }
+
+    fun TextView.startCustomScrolling() {
+        val textWidth = paint.measureText(text.toString())
+        if (textWidth > width) { // Only scroll if text overflows
+            val animator = ObjectAnimator.ofFloat(this, "translationX", width.toFloat(), -textWidth)
+            animator.duration = 5000L
+            animator.repeatCount = ObjectAnimator.INFINITE
+            animator.interpolator = LinearInterpolator()
+            animator.start()
+        }
+    }
+
+    fun TextView.enableSlideShow() {
+        this.isSingleLine = true // Ensure text is a single line
+        this.ellipsize = TextUtils.TruncateAt.MARQUEE // Enable marquee
+        this.marqueeRepeatLimit = -1 // Infinite scrolling
+        this.isFocusable = true // Required for marquee
+        this.isFocusableInTouchMode = true // Required for marquee
+        this.isSelected = true // Crucial to trigger marquee effect
+        this.setHorizontallyScrolling(true) // Enable horizontal scrolling
+    }
+    fun AppCompatEditText.editTextTyping(typing: () -> Unit, clearTyping: () -> Unit) {
+        this.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (s.isNullOrEmpty()) clearTyping()
+                else typing()
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
+    }
+
+    fun View.outcomeDirection() {
+        this.layoutDirection = View.LAYOUT_DIRECTION_RTL
+    }
+
+    fun View.incomeDirection() {
+        this.layoutDirection = View.LAYOUT_DIRECTION_LTR
+    }
+
+
+    inline fun SeekBar.setOnProgressChangedListener(crossinline action: (progress: Int, fromUser: Boolean) -> Unit) {
+        this.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) action(progress, fromUser)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                // No action needed
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                // No action needed
+            }
+        })
+    }
+    fun String.extractMessageAndImage(): Pair<String?, String?> {
+        val doc = Jsoup.parse(this)
+        val message = doc.select("p").first()?.text()
+        val imageSrc = doc.select("img").first()?.attr("src")
+        return Pair(message, imageSrc)
+    }
+
+    // Extension function for setting visibility in a cleaner way
+    fun View.setVisibleGone(isVisible: Boolean) {
+        visibility = if (isVisible) View.VISIBLE else View.GONE
+    }
+
+    fun View.setVisibleInvisible(isVisible: Boolean) {
+        visibility = if (isVisible) View.VISIBLE else View.INVISIBLE
+    }
+
+    fun Fragment.showKeyboardAndFocusEditText(editText: AppCompatEditText) {
+        editText.requestFocus()
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, InputMethodManager.HIDE_IMPLICIT_ONLY)
+    }
+
+    fun Fragment.closeKeyboardAndFocusEditText(editText: AppCompatEditText) {
+        editText.requestFocus()
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(editText.windowToken, 0)
+    }
+
+    fun String.copyToClipboard(activity: Activity) {
+        val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("copy", this.fromURI()))
+    }
+
+    fun FloatingActionButton.hideAndShowByScrolling(recyclerView: RecyclerView) {
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            private val scrollThreshold = 8
+            private var scrolledDistance = 0
+            private var controlsVisible = true
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                    scrolledDistance = 0
+                }
+            }
+
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                if (controlsVisible && scrolledDistance > scrollThreshold && dy > 0) {
+                    hide()
+                    controlsVisible = false
+                    scrolledDistance = 0
+                } else if (!controlsVisible && scrolledDistance < -scrollThreshold && dy < 0) {
+                    show()
+                    controlsVisible = true
+                    scrolledDistance = 0
+                }
+                if ((controlsVisible && dy > 0) || (!controlsVisible && dy < 0)) {
+                    scrolledDistance += dy
+                }
+            }
+        })
+    }
+    fun RecyclerView.scrollToBottom() {
+        val layoutManager = this.layoutManager as? LinearLayoutManager
+        if (layoutManager != null)
+            this.post { layoutManager.smoothScrollToPosition(this, RecyclerView.State(), 0) }
+    }
+    fun RecyclerView.scrollToFirst() {
+        val adapter = this.adapter
+        val layoutManager = this.layoutManager as? LinearLayoutManager
+        if (adapter != null && layoutManager != null) {
+            val lastPosition = adapter.itemCount - 1
+            if (lastPosition >= 0) this.post {
+                layoutManager.smoothScrollToPosition(
+                    this,
+                    RecyclerView.State(),
+                    lastPosition
+                )
+            }
+        }
+    }
+
+    fun FloatingActionButton.snapToBottomState(
+        recyclerView: RecyclerView,
+        adapter: RecyclerView.Adapter<*>
+    ) {
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+                if (newState == RecyclerView.SCROLL_STATE_IDLE)
+                    visibility =
+                        if ((recyclerView.layoutManager as LinearLayoutManager).findFirstVisibleItemPosition() == 0 || recyclerView.childCount == adapter.itemCount) View.GONE else View.VISIBLE
+            }
+
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                visibility = if (dy < 0 || recyclerView.canScrollVertically(1)) View.VISIBLE else View.GONE
+            }
+        })
+    }
+    fun View.onClickListener(action: () -> Unit) {
+        setOnClickListener { action() }
+    }
+
+    fun View.disable() {
+        isEnabled = false
+    }
+
+    fun View.enable() {
+        isEnabled = true
+    }
+
+    fun View.gone() {
+        visibility = View.GONE
+    }
+
+    fun View.visible() {
+        visibility = View.VISIBLE
+    }
+
+    fun View.invisible() {
+        visibility = View.INVISIBLE
+    }
+
 }
