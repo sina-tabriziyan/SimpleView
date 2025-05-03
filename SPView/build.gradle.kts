@@ -58,4 +58,8 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("org.jsoup:jsoup:1.17.2")
 
+    api(libs.bundles.okhttp)
+    api(libs.bundles.retrofit)
+
+
 }
