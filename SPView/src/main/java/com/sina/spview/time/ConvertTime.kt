@@ -16,15 +16,16 @@ object ConvertTime {
 
     @JvmStatic
     fun getModifiedTime(
-        filetime: String?, shortTime: Boolean,
+        fileTime: String?,
+        shortTime: Boolean,
         timeZone:String?,
         dayLightRange:String?,
         calenderType:Int?,
     ): String {
-        if (filetime == "-1") return " "
+        if (fileTime == "-1") return " "
 
         val arrDate = fileTimeConvertor.Picker(
-            filetime?.toLong()
+            fileTime?.toLong()
                 ?: convertToWindowsFileTime(millisToUnixTime(System.currentTimeMillis())),
             timeZone?.toLong() ?: 0L,
             dayLightRange,

@@ -13,7 +13,7 @@ import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
 object TrustAllCertificates {
-    private val trustAllCerts: X509TrustManager = @SuppressLint("CustomX509TrustManager")
+    val trustAllCerts: X509TrustManager = @SuppressLint("CustomX509TrustManager")
     object : X509TrustManager {
         override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
         override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
