@@ -64,4 +64,11 @@ dependencies {
     api(libs.bundles.navigation)
     api(libs.bundles.fragment)
 
+    implementation("androidx.media3:media3-exoplayer:1.6.1")
+    implementation("androidx.media3:media3-ui:1.6.1")
+    implementation("androidx.media3:media3-exoplayer-dash:1.6.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.6.1")
+    implementation("androidx.media3:media3-datasource-okhttp:1.6.1")
+    implementation("io.coil-kt:coil:2.5.0")
+
 }
