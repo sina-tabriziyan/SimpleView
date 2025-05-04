@@ -14,5 +14,7 @@
         <item name="android:singleLine">true</item>
         <item name="android:ellipsize">end</item>
     </style>
-
+    <declare-styleable name="IconTextView">
+        <attr name="setIcon" format="string" />
+    </declare-styleable>
 </resources>
