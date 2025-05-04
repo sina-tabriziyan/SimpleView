@@ -3,5 +3,6 @@
     <color name="white">#ffffff</color>
     <color name="bg_divider">#f0eff2</color>
     <color name="transparent_gray_50">#78D6D6D6</color>
+    <color name="msg_log_bg">#f2f2f2</color>
 
 </resources>
