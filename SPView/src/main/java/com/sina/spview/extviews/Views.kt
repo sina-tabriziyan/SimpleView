@@ -55,9 +55,6 @@ import androidx.fragment.app.Fragment
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import androidx.navigation.NavDirections
-import androidx.navigation.NavOptions
-import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.ImageLoader
@@ -68,9 +65,7 @@ import coil.size.Scale
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.sina.simpleview.library.R
-import com.sina.spview.enms.AnimationState
 import com.sina.spview.extviews.StringExtension.fromURI
-import com.sina.spview.models.BackStackOption
 import com.sina.spview.models.ScreenShot
 import okhttp3.Headers
 import org.jsoup.Jsoup
@@ -985,52 +980,5 @@ object ViewExtensions {
                 player.release()
             }
         })
-    }
-
-    fun Fragment.navigate(
-        destination: Any, // Can be NavDirections, String (deep link), or Int (destination ID)
-        animationState: AnimationState? = null,
-        backStackOption: BackStackOption = BackStackOption.NO_CLEAR,
-        deepLinkArgs: Map<String, String>? = null
-    ) {
-        val navController = findNavController()
-        val navOptionsBuilder = NavOptions.Builder()
-        var finalDestination: Any = destination
-
-        // Handle back stack options
-        when (backStackOption) {
-            BackStackOption.CLEAR_CURRENT -> navOptionsBuilder.setPopUpTo(navController.currentDestination?.id ?: return, true)
-            BackStackOption.CLEAR_ALL -> navOptionsBuilder.setPopUpTo(navController.graph.id, true)
-            BackStackOption.NO_CLEAR -> {}
-        }
-
-        // Handle animations
-        animationState?.let {
-            val (enter, exit) = when (it) {
-                AnimationState.FADE_IN_OUT -> android.R.anim.fade_in to android.R.anim.fade_out
-                AnimationState.FADE_OUT_IN -> android.R.anim.fade_in to android.R.anim.fade_out
-                AnimationState.TO_LEFT -> R.anim.slide_in_right to R.anim.slide_out_left
-                AnimationState.TO_RIGHT -> R.anim.slide_in_left to R.anim.slide_out_right
-            }
-            navOptionsBuilder.setEnterAnim(enter).setExitAnim(exit)
-            if (it == AnimationState.FADE_IN_OUT || it == AnimationState.FADE_OUT_IN) navOptionsBuilder.setPopEnterAnim(enter).setPopExitAnim(exit)
-        }
-
-        // Handle deep link arguments
-        if (destination is String && !deepLinkArgs.isNullOrEmpty()) {
-            var uriString = destination
-            val queryParams = deepLinkArgs.entries.joinToString("&") { "${it.key}=${it.value}" }
-            uriString += if (uriString.contains("?")) "&$queryParams" else "?$queryParams"
-            finalDestination = uriString.toUri()
-        }
-
-        val navOptions = navOptionsBuilder.build()
-
-        when (finalDestination) {
-            is NavDirections -> navController.navigate(finalDestination, navOptions)
-            is Uri -> navController.navigate(finalDestination, navOptions)
-            is Int -> navController.navigate(finalDestination, null, navOptions) // Bundle is null here
-            else -> throw IllegalArgumentException("Unsupported destination type: ${finalDestination::class.java.name}")
-        }
     }
 }
