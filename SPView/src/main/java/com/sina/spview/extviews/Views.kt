@@ -54,10 +54,17 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import coil.ImageLoader
+import coil.imageLoader
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import coil.size.Scale
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.sina.simpleview.library.R
 import com.sina.spview.extviews.StringExtension.fromURI
 import com.sina.spview.models.ScreenShot
+import okhttp3.Headers
 import org.jsoup.Jsoup
 import java.io.File
 import java.io.FileOutputStream
@@ -897,4 +904,51 @@ object ViewExtensions {
         }
     }
 
+    fun ImageView.showImageWithCoil(
+        path: String,
+        sharedPrefValue: String
+    ) {
+        val headers = Headers.Builder()
+            .add("Cookie", sharedPrefValue)
+            .build()
+
+        val request = ImageRequest.Builder(context)
+            .data(path)
+            .addHeader("Cookie", sharedPrefValue)
+            .crossfade(true)
+            .scale(Scale.FILL)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .placeholder(R.drawable.ic_video_placeholder)
+            .error(R.drawable.ic_video_error)
+            .target(this)
+            .build()
+
+        val imageLoader = ImageLoader(context)
+        imageLoader.enqueue(request)
+    }
+
+    fun ImageView.showImageWithCoil(
+        baseUrl: String,
+        path: String,
+        imgId: String?,
+        sharedPrefValue: String
+    ) {
+        val fullUrl = "https://$baseUrl$path$imgId"
+
+        val imageRequest = ImageRequest.Builder(this.context)
+            .data(fullUrl)
+            .headers(
+                Headers.Builder()
+                    .add("Cookie", sharedPrefValue)
+                    .build()
+            )
+            .diskCachePolicy(CachePolicy.DISABLED) // equivalent to DiskCacheStrategy.NONE
+            .memoryCachePolicy(CachePolicy.ENABLED) // optional
+            .target(this)
+            .transformations(coil.transform.CircleCropTransformation())
+            .build()
+
+        context.imageLoader.enqueue(imageRequest)
+    }
 }
