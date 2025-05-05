@@ -954,12 +954,12 @@ object ViewExtensions {
 
         context.imageLoader.enqueue(imageRequest)
     }
-    fun loadThumbnailIntoPlayerView(playerView: PlayerView, videoUri:Uri) {
+    fun PlayerView.loadThumbnailIntoPlayerView( videoUri:Uri) {
         // Initialize ExoPlayer
-        val player = ExoPlayer.Builder(playerView.context).build()
+        val player = ExoPlayer.Builder(this.context).build()
 
         // Set the player to the PlayerView
-        playerView.player = player
+        this.player = player
 
         // Create a MediaItem with the video Uri
         val mediaItem = MediaItem.fromUri(videoUri)
@@ -974,7 +974,7 @@ object ViewExtensions {
         player.seekTo(0) // Seek to the start (or any other time)
 
         // Release the player when it's no longer needed (like when the view is detached or recycled)
-        playerView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+        this.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {}
             override fun onViewDetachedFromWindow(v: View) {
                 player.release()
