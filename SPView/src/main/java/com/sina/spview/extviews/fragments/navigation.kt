@@ -14,6 +14,7 @@ import androidx.navigation.fragment.findNavController
 import com.sina.simpleview.library.R
 import com.sina.spview.enms.AnimationState
 import com.sina.spview.enms.BackStackOption
+import com.sina.spview.models.AttachIcons
 
 fun Fragment.navigateTo(
     destinationId: Int,
@@ -90,3 +91,15 @@ private fun buildDeepLinkUri(deepLink: String, arguments: Map<String, String>? =
     }
     return uriString.toUri()
 }
+
+
+fun attachIcons() = listOf(
+    AttachIcons.ICON_CAMERA,
+    AttachIcons.ICON_VIDEO,
+    AttachIcons.ICON_GALLERY,
+    AttachIcons.ICON_AUDIO,
+    AttachIcons.ICON_FILES,
+    AttachIcons.ICON_LOCATION,
+    AttachIcons.ICON_CONTACT,
+    AttachIcons.ICON_RECORDING,
+)
