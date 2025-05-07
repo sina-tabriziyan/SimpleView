@@ -4,5 +4,15 @@
     <color name="bg_divider">#f0eff2</color>
     <color name="transparent_gray_50">#78D6D6D6</color>
     <color name="msg_log_bg">#f2f2f2</color>
+    <color name="pick_audio">#ff574a</color>
+    <color name="pick_video">#009bd3</color>
+    <color name="pick_contact">#6159ab</color>
+    <color name="pick_camera">#2e65a2</color>
+    <color name="pick_gallery">#00a089</color>
+    <color name="pick_file">#faa71c</color>
+    <color name="pick_gps">#2aa741</color>
+    <color name="pick_voice">#f26522</color>
+    <color name="gps_disable">#c6c6c6</color>
+    <color name="gray">#777777</color>
 
 </resources>
