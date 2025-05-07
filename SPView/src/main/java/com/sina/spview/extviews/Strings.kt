@@ -11,6 +11,7 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import androidx.core.text.HtmlCompat
 import com.google.gson.internal.`$Gson$Preconditions`
+import org.jsoup.Jsoup
 
 
 object StringExtension {
@@ -102,6 +103,17 @@ object StringExtension {
         val lat = "mlat=([\\d.]+)".toRegex().find(this)?.groupValues?.get(1)?.toDoubleOrNull()
         val lon = "mlon=([\\d.]+)".toRegex().find(this)?.groupValues?.get(1)?.toDoubleOrNull()
         return if (lat != null && lon != null) lat to lon else null
+    }
+    fun String.extractMessageAndImage(): Pair<String?, String?> {
+        val doc = Jsoup.parse(this)
+        val message = doc.select("p").first()?.text()
+        val imageSrc = doc.select("img").first()?.attr("src")
+        return Pair(message, imageSrc)
+    }
+    fun String.extractId(): String {
+        val pattern = Regex("/chat/dialog/(attach|download)/\\d+/(\\d+)|/chat/dialog/(attach|download)/(\\d+)")
+        val matchResult = pattern.find(this)
+        return matchResult?.groups?.get(2)?.value ?: matchResult?.groups?.get(4)?.value ?: ""
     }
 
 }

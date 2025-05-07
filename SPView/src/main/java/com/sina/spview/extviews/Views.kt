@@ -34,6 +34,8 @@ import android.text.TextUtils
 import android.text.TextWatcher
 import android.text.style.ForegroundColorSpan
 import android.util.Log
+import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.LinearInterpolator
@@ -44,6 +46,7 @@ import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
@@ -67,6 +70,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.sina.simpleview.library.R
 import com.sina.spview.extviews.StringExtension.fromURI
 import com.sina.spview.models.ScreenShot
+import com.sina.spview.smpview.views.FontIcon
 import okhttp3.Headers
 import org.jsoup.Jsoup
 import java.io.File
@@ -981,4 +985,137 @@ object ViewExtensions {
             }
         })
     }
+
+    fun View.setVisibleOrGone(dataModify: String?) {
+        Log.e("TAG", "setVisibleOrGone: $dataModify")
+        this.visibility = if (dataModify.equals("0")) View.GONE else View.VISIBLE
+    }
+    fun FontIcon.makeMovable() {
+        var dX = 0f
+        var dY = 0f
+        var startX = 0f
+        var startY = 0f
+        val clickThreshold = 10 // Threshold to distinguish click from move
+
+        this.post {
+            // Store the initial position relative to the parent view
+            val parent = this.parent as? View ?: return@post
+            var parentWidth = parent.width
+            var parentHeight = parent.height
+
+            // Add a listener to detect layout changes (e.g. when keyboard appears)
+            parent.viewTreeObserver.addOnGlobalLayoutListener {
+                // Update parent dimensions in case they change
+                parentWidth = parent.width
+                parentHeight = parent.height
+            }
+
+            val initialX = this.x
+            val initialY = this.y
+            val snapThreshold = 150 // Threshold to snap back in pixels
+
+            this.setOnTouchListener { view, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        dX = view.x - event.rawX
+                        dY = view.y - event.rawY
+                        startX = event.rawX
+                        startY = event.rawY
+                        true
+                    }
+
+                    MotionEvent.ACTION_MOVE -> {
+                        // Calculate new position
+                        var newX = event.rawX + dX
+                        var newY = event.rawY + dY
+
+                        // Get view's width and height
+                        val viewWidth = view.width
+                        val viewHeight = view.height
+
+                        // Prevent the button from going out of parent's bounds
+                        newX = newX.coerceIn(0f, (parentWidth - viewWidth).toFloat())
+                        newY = newY.coerceIn(0f, (parentHeight - viewHeight).toFloat())
+
+                        view.animate()
+                            .x(newX)
+                            .y(newY)
+                            .setDuration(0)
+                            .start()
+
+                        true
+                    }
+
+                    MotionEvent.ACTION_UP -> {
+                        // Calculate the total movement distance
+                        val deltaX = Math.abs(event.rawX - startX)
+                        val deltaY = Math.abs(event.rawY - startY)
+
+                        // If the movement is smaller than the click threshold, treat it as a click
+                        if (deltaX < clickThreshold && deltaY < clickThreshold) {
+                            performClick() // Trigger the click event
+                        } else {
+                            // Calculate distance to initial position
+                            val distanceX = Math.abs(view.x - initialX)
+                            val distanceY = Math.abs(view.y - initialY)
+
+                            // If the button is close to the initial position, snap back
+                            if (distanceX < snapThreshold && distanceY < snapThreshold) {
+                                view.animate()
+                                    .x(initialX)
+                                    .y(initialY)
+                                    .setDuration(300)
+                                    .start()
+                            }
+                        }
+
+                        true
+                    }
+
+                    else -> false
+                }
+            }
+        }
+    }
+    fun showToast(context: Context, msgRes: Int) {
+        val typeface = Typeface.createFromAsset(context.assets, "IRANSansMobile(NoEn)_Light.ttf")
+        val inflater = LayoutInflater.from(context)
+        val layout = inflater.inflate(R.layout.custom_toast, null)
+        val text = layout.findViewById<TextView>(R.id.txt_message)
+        text.typeface = typeface
+        text.text = context.getString(msgRes)
+
+        val toast = Toast(context)
+        toast.setGravity(Gravity.BOTTOM, 0, 100)
+        toast.duration = Toast.LENGTH_SHORT
+        toast.view = layout
+        toast.show()
+    }
+
+    fun showToast(context: Context, msgRes: String) {
+        val typeface = Typeface.createFromAsset(context.assets, "IRANSansMobile(NoEn)_Light.ttf")
+        val inflater = LayoutInflater.from(context)
+        val layout = inflater.inflate(R.layout.custom_toast, null)
+        val text = layout.findViewById<TextView>(R.id.txt_message)
+        text.setTypeface(typeface)
+        text.text = msgRes
+
+        val toast = Toast(context)
+        toast.setGravity(Gravity.BOTTOM, 0, 100)
+        toast.duration = Toast.LENGTH_SHORT
+        toast.view = layout
+        toast.show()
+    }
+    fun FontIcon.showAgain() {
+        // Reset visibility
+        visibility = View.VISIBLE
+
+        // Animation to show the button
+        animate()
+            .alpha(1f)
+            .setDuration(800)
+            .start()
+    }
+
+
 }
