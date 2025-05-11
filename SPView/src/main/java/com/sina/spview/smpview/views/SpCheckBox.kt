@@ -237,7 +237,8 @@ class SpCheckBox : View {
         animationDuration = duration
     }
 
-    fun setOnCheckedChangeListener(listener: (Boolean?) -> Unit) {
+    fun setOnCheckedChangeListener(listener: ((Boolean) -> Unit)?) {
         onCheckedChangeListener = listener
     }
+
 }
