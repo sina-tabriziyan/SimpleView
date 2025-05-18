@@ -25,7 +25,7 @@ interface ToolbarBuilderAfterMenu {
 }
 
 // Implementation of the builder
-class ToolbarBuilder internal constructor(
+class ToolbarBuilder public constructor(
     private val context: Context,
     private val toolbar: Toolbar
 ) : ToolbarBuilderStart, ToolbarBuilderAfterMenu {
