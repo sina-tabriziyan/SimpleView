@@ -1,4 +1,4 @@
-package com.sina.spview.smpview.toolbar.sds
+package com.sina.spview.smpview.toolbar
 
 import android.content.Context
 import android.view.LayoutInflater
@@ -7,20 +7,11 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import androidx.annotation.IdRes
-import androidx.annotation.LayoutRes
-import androidx.annotation.MenuRes
 import androidx.core.view.MenuProvider
 import com.google.android.material.appbar.MaterialToolbar
+import com.sina.spview.enms.ToolbarStates
+import com.sina.spview.models.ToolbarContent
 
-sealed class ToolbarContent {
-    data class Menu(@MenuRes val menuRes: Int) : ToolbarContent()
-    data class CustomLayout(@LayoutRes val layoutRes: Int) : ToolbarContent()
-    data class CustomView(val view: View) : ToolbarContent()
-}
-
-enum class ToolbarStates {
-    DefaultMode, SectionMode, PlayerMode
-}
 
 class ToolbarsBuilder(
     private val context: Context,
