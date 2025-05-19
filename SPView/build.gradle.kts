@@ -71,4 +71,7 @@ dependencies {
     implementation("androidx.media3:media3-datasource-okhttp:1.6.1")
     implementation("io.coil-kt:coil:2.5.0")
 
+    implementation(libs.lottie)
+
+
 }

@@ -5,4 +5,6 @@
     <string name="txt_persian">persian</string>
     <string name="txt_you">You</string>
     <string name="txt_today">Today</string>
+    <string name="txt_info">Info</string>
+    <string name="domain">Domain</string>
 </resources>
