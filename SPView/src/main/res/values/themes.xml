@@ -1,65 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="CustomCheckboxBrand" parent="@style/Widget.AppCompat.CompoundButton.CheckBox">
-        <item name="android:button">@drawable/checkbox_selector</item>
-        <item name="android:background">@android:color/transparent</item>
-    </style>
-
-
-    <style name="ThemeOverlay.App.Toolbar" parent="ThemeOverlay.MaterialComponents.Toolbar.Primary">
-        <item name="colorOnPrimary">@android:color/white</item>
-    </style>
-
-    <declare-styleable name="IconTextView">
-        <attr name="setIcon" format="string" />
-    </declare-styleable>
-    <!-- styles.xml -->
-    <style name="CustomPopupMenu" parent="ThemeOverlay.AppCompat.Light">
-        <!-- Set the text color for menu items -->
-        <item name="android:textColor">@color/black</item>
-    </style>
-
-    <style name="IconStyle20">
-        <item name="android:gravity">center</item>
-        <item name="android:textSize">@dimen/icon_size_20_22_24</item>
-    </style>
-
-    <style name="lineStyle">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">1dp</item>
-        <item name="android:background">@color/bg_divider</item>
-    </style>
-
-    <style name="IconStyle40">
-        <item name="android:gravity">center</item>
-        <item name="android:textSize">@dimen/icon_size_40_50_60</item>
-    </style>
-
-    <style name="IconStyle60">
-        <item name="android:textColor">@color/white</item>
-        <item name="android:textSize">180sp</item>
-        <item name="android:gravity">center_vertical|center_horizontal</item>
-    </style>
-
-
-    <style name="Theme.YourApp.RoundedBottomSheetDialog" parent="Theme.MaterialComponents.BottomSheetDialog">
-        <!-- Optional: Add rounded corner styling -->
-        <item name="bottomSheetStyle">@style/Widget.MaterialComponents.BottomSheet.Modal</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.Material3.MediumComponent</item>
-        <item name="shapeAppearanceOverlay">
-            @style/ShapeAppearanceOverlay.MaterialComponents.BottomSheet
-        </item>
-    </style>
-
     <style name="TextViewLabelStyle">
         <item name="android:gravity">start</item>
         <item name="android:layout_gravity">center_vertical</item>
-        <item name="android:paddingTop">@dimen/size_8dp</item>
-        <item name="android:paddingBottom">@dimen/size_8dp</item>
-        <item name="android:textSize">@dimen/textsize_medium</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:textSize">18sp</item>
     </style>
-
     <style name="TextViewLabelStyle.Item">
         <item name="android:textSize">@dimen/text_size_small</item>
         <item name="android:paddingEnd">4dp</item>
@@ -68,76 +15,14 @@
         <item name="android:ellipsize">end</item>
     </style>
 
-    <style name="roundedImageViewRounded">
-        <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">50%</item>
-        <item name="android:backgroundTint">@color/msg_log_bg</item>
-    </style>
-
-    <style name="ItemChatTextStyle">
-        <item name="android:maxLines">1</item>
-        <item name="android:textDirection">locale</item>
-        <item name="android:textAlignment">textStart</item>
-    </style>
-
-    <style name="CircleTextViewStyle">
-        <item name="android:layout_width">50dp</item>
-        <item name="android:layout_height">50dp</item>
-        <item name="android:background">@drawable/bg_circle_orange</item>
-        <item name="android:gravity">center</item>
-        <item name="android:textColor">#FFFFFF</item>
-    </style>
-
-    <style name="roundedIconBackground">
-        <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">50%</item>
-    </style>
-
-    <style name="roundedCornersImageView" parent="">
-        <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">4%</item>
-    </style>
-
     <style name="DialogAnimation">
         <item name="android:windowEnterAnimation">@anim/slide_up</item>
         <item name="android:windowExitAnimation">@anim/slide_down</item>
     </style>
 
-
-    <style name="IconStyle">
-        <item name="android:gravity">center</item>
-        <item name="android:textSize">@dimen/icon_size_20_22_24</item>
-    </style>
-
-
-    <style name="Theme.Material3.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
-        <!-- Ensure all necessary attributes are defined -->
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <!-- Add other necessary items -->
-    </style>
-
-    <style name="RoundedBottomSheetDialog" parent="Theme.Design.Light.BottomSheetDialog">
-        <item name="bottomSheetStyle">@style/RoundedBottomSheet</item>
-    </style>
-
-    <style name="RoundedBottomSheet" parent="Widget.Design.BottomSheet.Modal">
-        <item name="android:background">@drawable/rounded_corners_background</item>
-    </style>
-
-    <!-- styles.xml -->
-    <style name="CustomBottomSheetDialogTheme" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
-        <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
-    </style>
-
-    <style name="CustomBottomSheetStyle" parent="Widget.MaterialComponents.BottomSheet.Modal">
-        <item name="backgroundTint">@android:color/transparent</item>
-        <item name="android:elevation">0dp</item>
-    </style>
-
-    <style name="ShapeAppearance.App.CornerSizeMedium" parent="ShapeAppearance.Material3.LargeComponent">
-        <item name="cornerFamily">rounded</item>
-        <item name="cornerSizeTopLeft">16dp</item>
-        <item name="cornerSizeTopRight">16dp</item>
+    <style name="CustomCheckboxBrand" parent="@style/Widget.AppCompat.CompoundButton.CheckBox">
+        <item name="android:button">@drawable/checkbox_selector</item>
+        <item name="android:background">@android:color/transparent</item>
     </style>
 
     <style name="ShapeAppearanceOverlay.TopRoundedCorners" parent="">
@@ -147,28 +32,4 @@
         <item name="cornerSizeBottomLeft">0dp</item>
         <item name="cornerSizeBottomRight">0dp</item>
     </style>
-
-
-    <style name="ItemCheckBox" parent="Theme.AppCompat.Light">
-        <item name="colorControlNormal">@color/gray</item>
-        <item name="colorControlActivated">@color/colorPrimary</item>
-    </style>
-
-    <style name="CustomTextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-        <item name="boxBackgroundMode">outline</item>
-        <item name="boxStrokeColor">@android:color/transparent</item>
-        <item name="boxCornerRadiusTopStart">12dp</item>
-        <item name="boxCornerRadiusTopEnd">12dp</item>
-        <item name="boxCornerRadiusBottomStart">12dp</item>
-        <item name="boxCornerRadiusBottomEnd">12dp</item>
-        <item name="hintTextColor">@color/white</item>
-        <item name="android:textColorHint">@color/white</item>
-        <item name="android:textColor">@color/white</item>
-    </style>
-
-    <style name="CustomErrorTextAppearance" parent="TextAppearance.AppCompat.Small">
-        <item name="android:textColor">@color/logo_red</item>
-        <item name="android:textSize">14sp</item>
-    </style>
-
 </resources>
