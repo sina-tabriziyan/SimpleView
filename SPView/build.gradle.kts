@@ -72,6 +72,7 @@ dependencies {
     implementation("io.coil-kt:coil:2.5.0")
 
     implementation(libs.lottie)
+    implementation(libs.circularprogressbar)
 
 
 }
