@@ -32,6 +32,11 @@ class FontIcon @JvmOverloads constructor(
         var desiredShape = BackgroundShape.RECTANGLE
         var bgColor = Color.TRANSPARENT
         var enableRipple = false
+        var shouldCreateCustomBackground = true // Assume we'll create it
+        if (this.background != null) {
+            shouldCreateCustomBackground = false
+        }
+
 
         attrs?.let {
             context.obtainStyledAttributes(it, R.styleable.FontIcon).use { typedArray ->
@@ -43,22 +48,38 @@ class FontIcon @JvmOverloads constructor(
                 val tintColor = typedArray.getColor(R.styleable.FontIcon_tint, currentTextColor)
                 setTextColor(tintColor)
 
-                val shapeValue = typedArray.getInt(R.styleable.FontIcon_backgroundShape, 1)
-                desiredShape = when (shapeValue) {
-                    0 -> BackgroundShape.OVAL
-                    1 -> BackgroundShape.RECTANGLE
-                    2 -> BackgroundShape.ROUNDED
-                    else -> BackgroundShape.RECTANGLE
-                }
+                // Only read background-related attributes if we intend to create a custom background
+                if (shouldCreateCustomBackground) {
+                    val shapeValue = typedArray.getInt(R.styleable.FontIcon_backgroundShape, 1)
+                    desiredShape = when (shapeValue) {
+                        0 -> BackgroundShape.OVAL
+                        1 -> BackgroundShape.RECTANGLE
+                        2 -> BackgroundShape.ROUNDED
+                        else -> BackgroundShape.RECTANGLE
+                    }
 
-                bgColor = typedArray.getColor(R.styleable.FontIcon_backgroundColor, Color.TRANSPARENT)
-                enableRipple = typedArray.getBoolean(R.styleable.FontIcon_ripple, false)
+                    bgColor = typedArray.getColor(R.styleable.FontIcon_backgroundColor, Color.TRANSPARENT)
+                    enableRipple = typedArray.getBoolean(R.styleable.FontIcon_ripple, false)
+                } else {
+                    // If XML background is used, we might still want to apply ripple if requested
+                    // and if the XML background isn't already a RippleDrawable.
+                    // This part can get a bit more complex if you want to combine XML bg with programmatic ripple.
+                    // For simplicity now, we'll assume if XML bg is set, it handles its own ripple.
+                    // Alternatively, you could decide that app:ripple only applies to the programmatic background.
+                    enableRipple = typedArray.getBoolean(R.styleable.FontIcon_ripple, false)
+                    if (enableRipple && this.background != null && this.background !is RippleDrawable && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        val rippleColorStateList = ColorStateList.valueOf(Color.parseColor("#33000000"))
+                        this.background = RippleDrawable(rippleColorStateList, this.background, null)
+                    }
+                }
             }
         }
 
         // Apply background with optional ripple
-        background = createBackgroundDrawable(desiredShape, bgColor, enableRipple)
-
+        // OR if XML background was set, but we handled ripple above.
+        if (shouldCreateCustomBackground) {
+            background = createBackgroundDrawable(desiredShape, bgColor, enableRipple)
+        }
         // Enable ripple effect
         isClickable = true
         isFocusable = true
