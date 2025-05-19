@@ -2,23 +2,25 @@ package com.sina.spview.smpview.views
 
 import android.graphics.Canvas
 import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 
 /**
- * A generic ItemTouchHelper.SimpleCallback for providing swipe visual feedback and detection.
- * It does not make assumptions about item types or swipe directions beyond what is configured.
+ * A generic ItemTouchHelper.SimpleCallback for swipe-to-reply functionality,
+ * designed to work with any ListAdapter.
  *
- * @param allowedSwipeDirections A function that takes a ViewHolder and returns the allowed
- *                               swipe directions for that item (e.g., ItemTouchHelper.LEFT).
- *                               Return 0 to disable swipe for an item.
- * @param onSwipeDetected A lambda function that is invoked when a swipe action is detected.
- *                        It receives the position of the swiped item and the swipe direction.
+ * @param T The type of the items in the adapter's list.
+ * @param VH The type of the ViewHolder used by the adapter.
+ * @property adapter The ListAdapter instance.
+ * @property getItemSwipeDirections A function that determines the allowed swipe directions
+ *                                  for a given item of type T.
+ * @property onSwipeDetected A lambda invoked when a swipe is completed.
  */
-class ItemTouchHelperSwipeCallback(
-    private val adapter: RecyclerView.Adapter<*>, // Generic adapter
-    private val allowedSwipeDirections: (viewHolder: RecyclerView.ViewHolder) -> Int,
+class ItemTouchHelperSwipeCallback<T, VH : RecyclerView.ViewHolder>(
+    private val adapter: ListAdapter<T, VH>,
+    private val getItemSwipeDirections: (item: T) -> Int,
     private val onSwipeDetected: (position: Int, direction: Int) -> Unit
-) : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) { // Default to both, but getSwipeDirs will override
+) : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) { // Default to L/R, getSwipeDirs will specify
 
     override fun onMove(
         recyclerView: RecyclerView,
@@ -28,11 +30,9 @@ class ItemTouchHelperSwipeCallback(
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
         val position = viewHolder.absoluteAdapterPosition
-        if (position != RecyclerView.NO_POSITION) {
+        if (position != RecyclerView.NO_POSITION && position < adapter.currentList.size) {
             onSwipeDetected(position, direction)
-            // Crucially, ensure the adapter is notified to redraw the item.
-            // This helps in resetting the view if the swipe doesn't remove the item.
-            adapter.notifyItemChanged(position)
+            adapter.notifyItemChanged(position) // Reset item view
         }
     }
 
@@ -41,10 +41,11 @@ class ItemTouchHelperSwipeCallback(
         viewHolder: RecyclerView.ViewHolder
     ): Int {
         val position = viewHolder.absoluteAdapterPosition
-        return if (position != RecyclerView.NO_POSITION) {
-            allowedSwipeDirections(viewHolder)
+        return if (position != RecyclerView.NO_POSITION && position < adapter.currentList.size) {
+            val item = adapter.currentList[position]
+            getItemSwipeDirections(item) // Delegate direction decision
         } else {
-            0 // No swipe if position is invalid
+            0 // Disable swipe for invalid positions
         }
     }
 
@@ -58,15 +59,23 @@ class ItemTouchHelperSwipeCallback(
         isCurrentlyActive: Boolean
     ) {
         if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
-            val maxSwipeDistance = viewHolder.itemView.width * 0.3f // Max 30% of item width
-            val newDx = if (getSwipeDirs(recyclerView, viewHolder) == ItemTouchHelper.LEFT) {
-                dX.coerceAtMost(0f).coerceAtLeast(-maxSwipeDistance) // Allow only left swipe, clamp negative dX
-            } else if (getSwipeDirs(recyclerView, viewHolder) == ItemTouchHelper.RIGHT) {
-                dX.coerceAtLeast(0f).coerceAtMost(maxSwipeDistance) // Allow only right swipe, clamp positive dX
-            } else {
-                0f // If both or none, effectively clamp to not move beyond threshold quickly
+            val currentSwipeDirs = getSwipeDirs(recyclerView, viewHolder)
+            val maxSwipeDistance = viewHolder.itemView.width * 0.3f
+            var clampedDx = dX
+
+            if (currentSwipeDirs == ItemTouchHelper.LEFT) {
+                clampedDx = dX.coerceAtMost(0f).coerceAtLeast(-maxSwipeDistance)
+            } else if (currentSwipeDirs == ItemTouchHelper.RIGHT) {
+                clampedDx = dX.coerceAtLeast(0f).coerceAtMost(maxSwipeDistance)
+            } else if (currentSwipeDirs == (ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT)) {
+                // Allow both directions up to the threshold
+                clampedDx = dX.coerceIn(-maxSwipeDistance, maxSwipeDistance)
             }
-            super.onChildDraw(c, recyclerView, viewHolder, newDx, dY, actionState, isCurrentlyActive)
+            else {
+                clampedDx = 0f // No swipe allowed or invalid direction, don't move
+            }
+
+            super.onChildDraw(c, recyclerView, viewHolder, clampedDx, dY, actionState, isCurrentlyActive)
         } else {
             super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
         }
@@ -74,10 +83,10 @@ class ItemTouchHelperSwipeCallback(
 
     override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
         super.clearView(recyclerView, viewHolder)
-        viewHolder.itemView.translationX = 0f // Explicitly reset translation
+        viewHolder.itemView.translationX = 0f
     }
 
     override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float {
-        return 0.5f // Require at least 50% drag to trigger swipe
+        return 0.5f // 50% drag to trigger swipe
     }
 }
