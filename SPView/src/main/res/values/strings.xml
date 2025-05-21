@@ -7,4 +7,8 @@
     <string name="txt_today">Today</string>
     <string name="txt_info">Info</string>
     <string name="domain">Domain</string>
+    <string name="txt_mb_size">MB</string>
+    <string name="txt_kb_size">KB</string>
+    <string name="txt_b_size">B</string>
+
 </resources>

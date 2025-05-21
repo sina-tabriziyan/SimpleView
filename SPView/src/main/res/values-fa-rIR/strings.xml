@@ -5,6 +5,8 @@
     <string name="txt_today">امروز</string>
     <string name="txt_info">اطلاعات</string>
     <string name="domain">دامنه</string>
-
+    <string name="txt_mb_size">مگابایت</string>
+    <string name="txt_kb_size">کیلوبایت</string>
+    <string name="txt_b_size">بایت</string>
 
 </resources>
