@@ -56,7 +56,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation("org.jsoup:jsoup:1.17.2")
+    implementation(libs.jsoup)
 
     api(libs.bundles.okhttp)
     api(libs.bundles.retrofit)
@@ -64,13 +64,8 @@ dependencies {
     api(libs.bundles.navigation)
     api(libs.bundles.fragment)
 
-    implementation("androidx.media3:media3-exoplayer:1.6.1")
-    implementation("androidx.media3:media3-ui:1.6.1")
-    implementation("androidx.media3:media3-exoplayer-dash:1.6.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.6.1")
-    implementation("androidx.media3:media3-datasource-okhttp:1.6.1")
-    implementation("io.coil-kt.coil3:coil:3.2.0")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
+    implementation(libs.bundles.media3)
+    implementation(libs.bundles.coil)
     implementation(libs.lottie)
     implementation(libs.circularprogressbar)
 
