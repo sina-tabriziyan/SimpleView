@@ -60,11 +60,17 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import coil.ImageLoader
-import coil.imageLoader
-import coil.request.CachePolicy
-import coil.request.ImageRequest
-import coil.size.Scale
+import coil3.ImageLoader
+import coil3.imageLoader
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import coil3.request.error
+import coil3.request.placeholder
+import coil3.request.target
+import coil3.size.Scale
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.sina.simpleview.library.R
@@ -915,13 +921,13 @@ object ViewExtensions {
         path: String,
         sharedPrefValue: String
     ) {
-        val headers = Headers.Builder()
-            .add("Cookie", sharedPrefValue)
+        val headers = NetworkHeaders.Builder()
+            .set("Cookie", sharedPrefValue)
             .build()
 
         val request = ImageRequest.Builder(context)
             .data(path)
-            .addHeader("Cookie", sharedPrefValue)
+            .httpHeaders(headers)
             .crossfade(true)
             .scale(Scale.FILL)
             .diskCachePolicy(CachePolicy.ENABLED)
@@ -935,29 +941,29 @@ object ViewExtensions {
         imageLoader.enqueue(request)
     }
 
-    fun ImageView.showImageWithCoil(
-        baseUrl: String,
-        path: String,
-        imgId: String?,
-        sharedPrefValue: String
-    ) {
-        val fullUrl = "https://$baseUrl$path$imgId"
-
-        val imageRequest = ImageRequest.Builder(this.context)
-            .data(fullUrl)
-            .headers(
-                Headers.Builder()
-                    .add("Cookie", sharedPrefValue)
-                    .build()
-            )
-            .diskCachePolicy(CachePolicy.DISABLED) // equivalent to DiskCacheStrategy.NONE
-            .memoryCachePolicy(CachePolicy.ENABLED) // optional
-            .target(this)
-            .transformations(coil.transform.CircleCropTransformation())
-            .build()
-
-        context.imageLoader.enqueue(imageRequest)
-    }
+//    fun ImageView.showImageWithCoil(
+//        baseUrl: String,
+//        path: String,
+//        imgId: String?,
+//        sharedPrefValue: String
+//    ) {
+//        val fullUrl = "https://$baseUrl$path$imgId"
+//
+//        val imageRequest = ImageRequest.Builder(this.context)
+//            .data(fullUrl)
+//            .headers(
+//                Headers.Builder()
+//                    .add("Cookie", sharedPrefValue)
+//                    .build()
+//            )
+//            .diskCachePolicy(CachePolicy.DISABLED) // equivalent to DiskCacheStrategy.NONE
+//            .memoryCachePolicy(CachePolicy.ENABLED) // optional
+//            .target(this)
+//            .transformations(coil.transform.CircleCropTransformation())
+//            .build()
+//
+//        context.imageLoader.enqueue(imageRequest)
+//    }
     fun PlayerView.loadThumbnailIntoPlayerView( videoUri:Uri) {
         // Initialize ExoPlayer
         val player = ExoPlayer.Builder(this.context).build()

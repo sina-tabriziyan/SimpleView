@@ -69,8 +69,8 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-dash:1.6.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.6.1")
     implementation("androidx.media3:media3-datasource-okhttp:1.6.1")
-    implementation("io.coil-kt:coil:2.5.0")
-
+    implementation("io.coil-kt.coil3:coil:3.2.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
     implementation(libs.lottie)
     implementation(libs.circularprogressbar)
 
