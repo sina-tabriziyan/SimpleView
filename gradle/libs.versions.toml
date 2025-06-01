@@ -21,6 +21,7 @@ lifecycleViewmodelKtx = "2.9.0"
 fragmentKtx = "1.8.7"
 lottie = "6.3.0"
 circularprogressbar = "3.1.0"
+glide = "4.16.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,6 +59,7 @@ circularprogressbar = { module = "com.mikhaellopez:circularprogressbar", version
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 
 [bundles]
 retrofit = ["retrofit", "retrofit-scalars", "retrofit-gson"]

@@ -58,6 +58,9 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.jsoup)
 
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+//    kapt("com.github.bumptech.glide:compiler:4.11.0")
+
     api(libs.bundles.okhttp)
     api(libs.bundles.retrofit)
     api(libs.bundles.koin)
