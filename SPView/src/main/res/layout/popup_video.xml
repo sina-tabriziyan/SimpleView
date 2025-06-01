@@ -3,7 +3,7 @@
     android:id="@+id/popup_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#99000000"> <!-- dim -->
+    android:background="@drawable/bg_chat_income">
 
 
     <com.google.android.material.card.MaterialCardView
