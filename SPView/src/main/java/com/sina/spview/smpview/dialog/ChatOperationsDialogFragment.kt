@@ -1,6 +1,9 @@
 package com.sina.spview.smpview.dialog
 
 import android.app.Dialog
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.sina.simpleview.library.R
 import com.sina.spview.enms.OperationItem
+import androidx.core.graphics.drawable.toDrawable
 
 class ChatOperationsDialogFragment<T>(private val operations: List<T>, private val onOperationSelected: (T) -> Unit) : DialogFragment() where T : Enum<T>, T : OperationItem {
 
@@ -60,44 +64,4 @@ class ChatOperationsDialogFragment<T>(private val operations: List<T>, private v
             }
         }
     }
-}
-fun <T> showOperationPopup(anchorView: View, operations: List<T>, onOperationSelected: (T) -> Unit) where T : Enum<T>, T : OperationItem {
-    val context = anchorView.context
-    val inflater = LayoutInflater.from(context)
-    val popupView = inflater.inflate(R.layout.popup_chat_operations, null)
-
-    val recyclerView = popupView.findViewById<RecyclerView>(R.id.operations_recycler_view)
-    val popupWindow = PopupWindow(
-        popupView,
-        ViewGroup.LayoutParams.WRAP_CONTENT,
-        ViewGroup.LayoutParams.WRAP_CONTENT,
-        true
-    )
-    recyclerView.layoutManager = LinearLayoutManager(context)
-    recyclerView.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_chat_operation, parent, false)
-            return object : RecyclerView.ViewHolder(view) {}
-        }
-
-        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            val operation = operations[position]
-            val iconView: TextView = holder.itemView.findViewById(R.id.operation_icon)
-            val nameView: TextView = holder.itemView.findViewById(R.id.operation_name)
-            iconView.text = operation.icon
-            nameView.setText(operation.resNameId)
-            holder.itemView.setOnClickListener {
-                onOperationSelected(operation)
-                popupWindow.dismiss()
-            }
-        }
-
-        override fun getItemCount(): Int = operations.size
-    }
-
-
-
-    // Show the popup window offset to the anchor view
-    popupWindow.showAsDropDown(anchorView, 0, 0)
 }
