@@ -37,9 +37,9 @@ class FontIcon @JvmOverloads constructor(
             shouldCreateCustomBackground = false
         }
 
-
-        attrs?.let {
-            context.obtainStyledAttributes(it, R.styleable.FontIcon).use { typedArray ->
+        attrs?.let { attributeSet ->
+            val typedArray = context.obtainStyledAttributes(attributeSet, R.styleable.FontIcon)
+            try {
                 val iconCode = typedArray.getString(R.styleable.FontIcon_setIcon)
                 if (!iconCode.isNullOrEmpty()) {
                     setIcon(iconCode)
@@ -48,7 +48,6 @@ class FontIcon @JvmOverloads constructor(
                 val tintColor = typedArray.getColor(R.styleable.FontIcon_tint, currentTextColor)
                 setTextColor(tintColor)
 
-                // Only read background-related attributes if we intend to create a custom background
                 if (shouldCreateCustomBackground) {
                     val shapeValue = typedArray.getInt(R.styleable.FontIcon_backgroundShape, 1)
                     desiredShape = when (shapeValue) {
@@ -61,19 +60,17 @@ class FontIcon @JvmOverloads constructor(
                     bgColor = typedArray.getColor(R.styleable.FontIcon_backgroundColor, Color.TRANSPARENT)
                     enableRipple = typedArray.getBoolean(R.styleable.FontIcon_ripple, false)
                 } else {
-                    // If XML background is used, we might still want to apply ripple if requested
-                    // and if the XML background isn't already a RippleDrawable.
-                    // This part can get a bit more complex if you want to combine XML bg with programmatic ripple.
-                    // For simplicity now, we'll assume if XML bg is set, it handles its own ripple.
-                    // Alternatively, you could decide that app:ripple only applies to the programmatic background.
                     enableRipple = typedArray.getBoolean(R.styleable.FontIcon_ripple, false)
                     if (enableRipple && this.background != null && this.background !is RippleDrawable && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         val rippleColorStateList = ColorStateList.valueOf(Color.parseColor("#33000000"))
                         this.background = RippleDrawable(rippleColorStateList, this.background, null)
                     }
                 }
+            } finally {
+                typedArray.recycle()
             }
         }
+
 
         // Apply background with optional ripple
         // OR if XML background was set, but we handled ripple above.
