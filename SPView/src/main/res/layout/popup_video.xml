@@ -1,22 +1,26 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/popup_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#99000000"> <!-- dim -->
 
-    <FrameLayout
+
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/player_container"
         android:layout_width="300dp"
         android:layout_height="200dp"
         android:layout_gravity="center"
-        android:background="@android:color/black">
+        app:cardCornerRadius="16dp"
+        app:cardElevation="4dp">
 
         <androidx.media3.ui.PlayerView
             android:id="@+id/popup_player_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:clipToOutline="true"
             app:use_controller="true" />
 
-    </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 </FrameLayout>
