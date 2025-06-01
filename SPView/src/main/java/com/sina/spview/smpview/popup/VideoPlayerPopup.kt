@@ -7,6 +7,7 @@ import android.net.Uri
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.PopupWindow
 import androidx.media3.common.MediaItem
@@ -25,19 +26,61 @@ import androidx.core.net.toUri
 fun showVideoInPopup(context: Context, hostView: View, videoUrl: String) {
     val inflater = LayoutInflater.from(context)
     val popupView: View = inflater.inflate(R.layout.popup_video, null)
+
     val playerView: PlayerView = popupView.findViewById(R.id.popup_player_view)
-    val exoPlayer = ExoPlayer.Builder(context).build().also { player ->
-        playerView.player = player
+    val playerContainer: View = popupView.findViewById(R.id.player_container)
+
+    val player = ExoPlayer.Builder(context).build().also { exoPlayer ->
+        playerView.player = exoPlayer
         val mediaItem = MediaItem.fromUri(videoUrl.toUri())
-        player.setMediaItem(mediaItem)
-        player.prepare()
-        player.playWhenReady = true
+        exoPlayer.setMediaItem(mediaItem)
+        exoPlayer.prepare()
+        exoPlayer.playWhenReady = true
     }
-    val popupWindow = PopupWindow(popupView, WRAP_CONTENT, WRAP_CONTENT, true).apply {
+
+    // Get screen size
+    val displayMetrics = context.resources.displayMetrics
+    val screenWidth = displayMetrics.widthPixels
+    val screenHeight = displayMetrics.heightPixels
+
+    // Calculate popup size as % of screen size
+    val popupWidth = (screenWidth * 0.8).toInt()  // 80% width
+    val popupHeight = (screenHeight * 0.4).toInt() // 40% height
+
+    // Set initial size to popupWindow
+    val popupWindow = PopupWindow(popupView, popupWidth, popupHeight, true).apply {
         isOutsideTouchable = true
         setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-        elevation = 8f
-        setOnDismissListener { exoPlayer.release() }
+        elevation = 10f
+
+        setOnDismissListener {
+            player.release()
+        }
     }
+
     popupWindow.showAtLocation(hostView, Gravity.CENTER, 0, 0)
+
+    // Support fullscreen toggle as before, resizing popupWindow and playerContainer
+    var isFullscreen = false
+
+    playerContainer.setOnClickListener {
+        if (isFullscreen) {
+            popupWindow.update(popupWidth, popupHeight)
+            val params = playerContainer.layoutParams
+            params.width = popupWidth
+            params.height = popupHeight
+            playerContainer.layoutParams = params
+            isFullscreen = false
+        } else {
+            popupWindow.update(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            val params = playerContainer.layoutParams
+            params.width = ViewGroup.LayoutParams.MATCH_PARENT
+            params.height = ViewGroup.LayoutParams.MATCH_PARENT
+            playerContainer.layoutParams = params
+            isFullscreen = true
+        }
+    }
 }
