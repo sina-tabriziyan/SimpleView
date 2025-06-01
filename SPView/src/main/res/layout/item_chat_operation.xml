@@ -8,7 +8,7 @@
     android:padding="8dp">
 
     <com.sina.spview.smpview.views.FontIcon
-        android:id="@+id/operation_icon"
+        android:id="@+id/operationIcon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:text="🔧"

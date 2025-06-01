@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.sina.simpleview.library.R
 import com.sina.spview.enms.OperationItem
+import com.sina.spview.smpview.views.FontIcon
 
 fun <T> showOperationPopup(
     anchorView: View,
@@ -81,9 +82,10 @@ fun <T> showOperationPopup(
 
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             val operation = operations[position]
-            val iconView: TextView = holder.itemView.findViewById(R.id.operation_icon)
+            val iconView: FontIcon = holder.itemView.findViewById(R.id.operationIcon)
             val nameView: TextView = holder.itemView.findViewById(R.id.operation_name)
-            iconView.text = operation.icon
+
+            iconView.setIcon(operation.icon)
             nameView.setText(operation.resNameId)
             holder.itemView.setOnClickListener {
                 onOperationSelected(operation)
