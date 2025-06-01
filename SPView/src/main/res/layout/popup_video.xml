@@ -27,7 +27,7 @@
                 app:use_controller="true" />
 
             <!-- Fullscreen toggle button -->
-            <ImageView
+            <ImageButton
                 android:id="@+id/fullscreen_toggle_button"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
