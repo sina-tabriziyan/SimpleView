@@ -54,7 +54,7 @@ class ChatOperationsDialogFragment<T>(private val operations: List<T>, private v
         override fun getItemCount(): Int = operations.size
 
         inner class OperationViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            private val iconView: TextView = itemView.findViewById(R.id.operation_icon)
+            private val iconView: TextView = itemView.findViewById(R.id.operationIcon)
             private val nameView: TextView = itemView.findViewById(R.id.operation_name)
 
             fun bind(operation: T) {
