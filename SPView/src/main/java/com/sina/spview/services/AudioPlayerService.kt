@@ -26,9 +26,9 @@ class AudioPlayerService(private val context: Context) {
     private val progressUpdateHandler = Handler(Looper.getMainLooper())
     private lateinit var progressUpdateRunnable: Runnable
 
-    fun playAudio(filePath: String, position: Int) {
+    fun playAudio(filePath: String, itemPositionTag: Int) {
         stopAudioInternal() // Stop previous audio and clear state before starting new
-        currentPlayingPositionTag = position
+        currentPlayingPositionTag = itemPositionTag
 
         exoPlayer = ExoPlayer.Builder(context).build().apply {
             val mediaItem = MediaItem.fromUri(Uri.fromFile(File(filePath)))
@@ -36,7 +36,7 @@ class AudioPlayerService(private val context: Context) {
             prepare()
             play()
             _audioStateFlow.value =
-                AudioState.Playing(position, 0, duration.toInt().coerceAtLeast(0))
+                AudioState.Playing(itemPositionTag, 0, duration.toInt().coerceAtLeast(0))
 
             addListener(object : androidx.media3.common.Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -57,26 +57,35 @@ class AudioPlayerService(private val context: Context) {
                     }
                 }
 
-                override fun onPlaybackStateChanged(state: Int) {
+                override fun onPlaybackStateChanged(playbackState: Int) {
                     when (playbackState) {
                         Player.STATE_READY -> {
-                            if (isPlaying) {
+                            // If isPlaying is true, onIsPlayingChanged(true) will handle it.
+                            // If not playing yet but ready, we could update duration here if it changed.
+                            if (isPlaying) { // Ensure progress updater starts if we become ready and are playing
                                 startProgressUpdater()
                             }
+                            // Update with potentially more accurate duration once ready
                             _audioStateFlow.value = AudioState.Playing(
                                 currentPlayingPositionTag,
                                 currentPosition.toInt().coerceAtLeast(0),
                                 duration.toInt().coerceAtLeast(0)
                             )
-                        }
 
+                        }
                         Player.STATE_ENDED -> {
                             stopProgressUpdater()
                             _audioStateFlow.value = AudioState.Stopped(currentPlayingPositionTag)
+                            // Optionally, you might want to reset currentPlayingPositionTag here or in stopAudioInternal
                         }
-
-                        Player.STATE_BUFFERING -> {}
-                        Player.STATE_IDLE -> {}
+                        Player.STATE_BUFFERING -> {
+                            // Optionally emit a Buffering state
+                            // _audioStateFlow.value = AudioState.Buffering(currentPlayingPositionTag)
+                        }
+                        Player.STATE_IDLE -> {
+                            // This can happen after stop or if player is reset
+                            // _audioStateFlow.value = AudioState.Initial // Or a specific Idle state
+                        }
                     }
                 }
 
