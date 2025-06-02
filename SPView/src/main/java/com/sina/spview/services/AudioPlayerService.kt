@@ -6,61 +6,176 @@ import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.MutableLiveData
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.sina.spview.models.AudioState
+import kotlinx.coroutines.Runnable
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 
 class AudioPlayerService(private val context: Context) {
 
-        private var exoPlayer: ExoPlayer? = null
-        var audioStateLiveData = MutableLiveData<AudioState>()
+    private var exoPlayer: ExoPlayer? = null
+    private val _audioStateFlow = MutableStateFlow<AudioState>(AudioState.Initial)
+    val audioStateFlow: StateFlow<AudioState> = _audioStateFlow.asStateFlow()
+    // To keep track of which item's state we are emitting
+    private var currentPlayingPositionTag: Int = -1
+    private val progressUpdateHandler = Handler(Looper.getMainLooper())
+    private lateinit var progressUpdateRunnable: Runnable
 
+    fun playAudio(filePath: String, position: Int) {
+        stopAudioInternal() // Stop previous audio and clear state before starting new
+        currentPlayingPositionTag = position
 
-        fun playAudio(filePath: String, position: Int) {
-            stopAudio(position) // Stop previous audio if any
+        exoPlayer = ExoPlayer.Builder(context).build().apply {
+            val mediaItem = MediaItem.fromUri(Uri.fromFile(File(filePath)))
+            setMediaItem(mediaItem)
+            prepare()
+            play()
+            _audioStateFlow.value =
+                AudioState.Playing(position, 0, duration.toInt().coerceAtLeast(0))
 
-            exoPlayer = ExoPlayer.Builder(context).build().apply {
-                val mediaItem = MediaItem.fromUri(Uri.fromFile(File(filePath)))
-                setMediaItem(mediaItem)
-                prepare()
-                play()
-
-                addListener(object : androidx.media3.common.Player.Listener {
-                    override fun onPlaybackStateChanged(state: Int) {
-                        if (state == ExoPlayer.STATE_READY) {
-                            val duration = exoPlayer!!.duration.toInt()
-                            val handler = Handler(Looper.getMainLooper())
-                            handler.postDelayed(object : Runnable {
-                                override fun run() {
-                                    if (exoPlayer?.isPlaying == true) {
-                                        audioStateLiveData.postValue(
-                                            AudioState.Playing(position, exoPlayer!!.currentPosition.toInt(), duration)
-                                        )
-                                        handler.postDelayed(this, 500)
-                                    }
-                                }
-                            }, 500)
-                        }
-                        if (state == ExoPlayer.STATE_ENDED) {
-                            audioStateLiveData.postValue(AudioState.Stopped(position))
+            addListener(object : androidx.media3.common.Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    if (isPlaying) {
+                        startProgressUpdater()
+                        _audioStateFlow.value = AudioState.Playing(
+                            currentPlayingPositionTag,
+                            currentPosition.toInt().coerceAtLeast(0),
+                            duration.toInt().coerceAtLeast(0)
+                        )
+                    } else {
+                        if (playbackState != Player.STATE_ENDED) {
+                            _audioStateFlow.value = AudioState.Paused(
+                                currentPlayingPositionTag,
+                                currentPosition.toInt().coerceAtLeast(0)
+                            )
                         }
                     }
-                })
-            }
-        }
+                }
 
-        fun pauseAudio(position: Int) {
-            exoPlayer?.pause()
-            audioStateLiveData.postValue(AudioState.Paused(position, exoPlayer?.currentPosition?.toInt() ?: 0))
-        }
+                override fun onPlaybackStateChanged(state: Int) {
+                    when (playbackState) {
+                        Player.STATE_READY -> {
+                            if (isPlaying) {
+                                startProgressUpdater()
+                            }
+                            _audioStateFlow.value = AudioState.Playing(
+                                currentPlayingPositionTag,
+                                currentPosition.toInt().coerceAtLeast(0),
+                                duration.toInt().coerceAtLeast(0)
+                            )
+                        }
 
-        fun stopAudio(position: Int) {
-            exoPlayer?.release()
-            exoPlayer = null
-            audioStateLiveData.postValue(AudioState.Stopped(position))
-        }
+                        Player.STATE_ENDED -> {
+                            stopProgressUpdater()
+                            _audioStateFlow.value = AudioState.Stopped(currentPlayingPositionTag)
+                        }
 
-        fun seekTo(position: Int, progress: Int) {
-            exoPlayer?.seekTo(progress.toLong())
+                        Player.STATE_BUFFERING -> {}
+                        Player.STATE_IDLE -> {}
+                    }
+                }
+
+                override fun onPlayerError(error: PlaybackException) {
+                    super.onPlayerError(error)
+                    stopProgressUpdater()
+                    _audioStateFlow.value = AudioState.Error(
+                        currentPlayingPositionTag,
+                        error.message ?: "Unknown error"
+                    )
+                    stopAudioInternal()
+                }
+            })
         }
     }
+
+    fun startProgressUpdater() {
+        progressUpdateRunnable = object : Runnable {
+            override fun run() {
+                exoPlayer?.let { player ->
+                    if (player.isPlaying) {
+                        _audioStateFlow.value = AudioState.Playing(
+                            currentPlayingPositionTag,
+                            player.currentPosition.toInt().coerceAtLeast(0),
+                            player.duration.toInt().coerceAtLeast(0)
+                        )
+                        progressUpdateHandler.postDelayed(this, 500)
+                    } else {
+                        stopProgressUpdater()
+                    }
+                }
+            }
+        }
+    }
+
+    fun stopProgressUpdater() = progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
+
+    fun pauseAudio() {
+        exoPlayer?.pause()
+        stopProgressUpdater()
+        exoPlayer?.let {
+            _audioStateFlow.value = AudioState.Paused(
+                currentPlayingPositionTag,
+                it.currentPosition.toInt().coerceAtLeast(0)
+            )
+        }
+    }
+
+    fun resumeAudio() = exoPlayer?.play()
+
+
+    // Make this private if only called internally or ensure correct positionTag usage
+    private fun stopAudioInternal() {
+        stopProgressUpdater()
+        exoPlayer?.release()
+        exoPlayer = null
+        // Only emit the stopped state if something was conceptually playing/pause
+        if (currentPlayingPositionTag != -1) _audioStateFlow.value =
+            AudioState.Stopped(currentPlayingPositionTag)
+        currentPlayingPositionTag = -1 // reset the position tag
+    }
+
+    fun stopAudio(itemPositionTag: Int) {
+        // Stop if it's the current item or any player active
+        if (currentPlayingPositionTag == itemPositionTag || exoPlayer != null) stopAudioInternal()
+        else {
+            // If stop is called for an item that isn't the current one,
+            // and no player is active, we might just emit a stopped state for that specific tag
+            // if the UI needs to react to "ensure this item is shown as stopped".
+            // However, this can be complex if another item starts playing immediately.
+            // For simplicity, stopAudioInternal usually handles the active player.
+            // If the goal is to just tell the UI that a specific item's playback should be considered stopped,
+            // you might emit: _audioStateFlow.value = AudioState.Stopped(itemPositionTag)
+            // But be careful with global player state.
+        }
+    }
+
+
+    fun seekTo(progressMillis: Long) {
+        exoPlayer?.seekTo(progressMillis)
+        // After seek, the player state might change, and current position updates.
+        // The progress updater or state listeners should reflect the new position.
+        // You might want to immediately update the state if needed:
+        exoPlayer?.let {
+            if (it.isPlaying) {
+                _audioStateFlow.value = AudioState.Playing(
+                    currentPlayingPositionTag,
+                    it.currentPosition.toInt().coerceAtLeast(0),
+                    it.duration.toInt().coerceAtLeast(0)
+                )
+            } else {
+                _audioStateFlow.value = AudioState.Paused(
+                    currentPlayingPositionTag, it.currentPosition.toInt().coerceAtLeast(0)
+                )
+            }
+        }
+    }
+
+    fun releasePlayer() {
+        stopAudioInternal()
+    }
+}
