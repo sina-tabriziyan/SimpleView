@@ -55,7 +55,6 @@ class AudioPlayerService(private val context: Context) {
         override fun onPlaybackStateChanged(playbackState: Int) {
             // This callback is on the main thread
             val player = exoPlayer ?: return // Safety check
-
             when (playbackState) {
                 Player.STATE_READY -> {
                     if (player.isPlaying) {
