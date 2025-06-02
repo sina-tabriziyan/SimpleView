@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import androidx.lifecycle.MutableLiveData
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -38,7 +37,7 @@ class AudioPlayerService(private val context: Context) {
             _audioStateFlow.value =
                 AudioState.Playing(itemPositionTag, 0, duration.toInt().coerceAtLeast(0))
 
-            addListener(object : androidx.media3.common.Player.Listener {
+            addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     if (isPlaying) {
                         startProgressUpdater()

@@ -1,10 +1,14 @@
 package com.sina.spview.models
 
+import com.sina.spview.models.AudioState.Initial.itemTagId
+import retrofit2.http.POST
+
 sealed class AudioState {
-    data object Initial : AudioState() // Good initial state
-    data class Playing(val itemTagId: Int, val progress: Int, val duration: Int) : AudioState()
-    data class Paused(val itemTagId: Int, val progress: Int) : AudioState()
-    data class Stopped(val itemTagId: Int) : AudioState()
-    data class Error(val itemTagId: Int, val message: String) : AudioState()
-    data class Name(val itemTagId: Int, val fileName: String) : AudioState()
+    abstract val itemTagId: Int? // Nullable in the base class
+    data object Initial : AudioState() { override val itemTagId: Int? = null }
+    data class Playing(override val itemTagId: Int, val currentPosition: Int, val duration: Int) : AudioState()
+    data class Paused(override val itemTagId: Int, val currentPosition: Int) : AudioState()
+    data class Stopped(override val itemTagId: Int) : AudioState()
+    data class Error(override val itemTagId: Int, val message: String) : AudioState()
+    data class AudioDetails(override val itemTagId: Int, val fileName: String) : AudioState()
 }
