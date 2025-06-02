@@ -94,26 +94,49 @@ class AudioPlayerService(private val context: Context) {
     }
 
     fun startProgressUpdater() {
+        // 1. If a progressUpdateRunnable instance already exists from a previous call for this service instance,
+        //    remove any pending posts of it. This ensures we don't have multiple updaters running
+        //    if startProgressUpdater is called rapidly or in overlapping scenarios.
+        if (this::progressUpdateRunnable.isInitialized) {
+            progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
+        }
+
+        // 2. Create and initialize the new Runnable instance.
+        //    This new instance will be used for the current playback session's progress updates.
         progressUpdateRunnable = object : Runnable {
             override fun run() {
-                exoPlayer?.let { player ->
-                    if (player.isPlaying) {
-                        _audioStateFlow.value = AudioState.Playing(
-                            currentPlayingPositionTag,
-                            player.currentPosition.toInt().coerceAtLeast(0),
-                            player.duration.toInt().coerceAtLeast(0)
-                        )
-                        progressUpdateHandler.postDelayed(this, 500)
-                    } else {
-                        stopProgressUpdater()
-                    }
+                // Capture the current exoPlayer instance for safety within this execution of run()
+                val currentPlayer = exoPlayer
+
+                if (currentPlayer != null && currentPlayer.isPlaying) {
+                    // Player exists and is actively playing: update the state
+                    _audioStateFlow.value = AudioState.Playing(
+                        currentPlayingPositionTag,
+                        currentPlayer.currentPosition.toInt().coerceAtLeast(0),
+                        currentPlayer.duration.toInt().coerceAtLeast(0)
+                    )
+                    // Schedule the next update
+                    progressUpdateHandler.postDelayed(this, 500) // 'this' refers to the current Runnable instance
+                } else {
+                    // Player is null OR not playing:
+                    // The updater should stop itself to prevent further unnecessary checks or updates.
+                    // Calling stopProgressUpdater() will handle removing this specific runnable
+                    // from the handler's queue if this 'run' method was the last one posted.
+                    stopProgressUpdater()
                 }
             }
         }
+
+        // 3. Post the newly created runnable to the handler to start the updates.
+        progressUpdateHandler.post(progressUpdateRunnable)
     }
 
-    fun stopProgressUpdater() = progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
-
+    private fun stopProgressUpdater() {
+        // Check if progressUpdateRunnable has been initialized before trying to use it
+        if (this::progressUpdateRunnable.isInitialized) {
+            progressUpdateHandler.removeCallbacks(progressUpdateRunnable)
+        }
+    }
     fun pauseAudio() {
         exoPlayer?.pause()
         stopProgressUpdater()
