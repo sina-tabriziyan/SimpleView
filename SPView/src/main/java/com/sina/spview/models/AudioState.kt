@@ -1,8 +1,5 @@
 package com.sina.spview.models
 
-import com.sina.spview.models.AudioState.Initial.itemTagId
-import retrofit2.http.POST
-
 sealed class AudioState {
     abstract val itemTagId: Int? // Nullable in the base class
     data object Initial : AudioState() { override val itemTagId: Int? = null }
