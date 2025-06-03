@@ -15,6 +15,7 @@ import android.view.WindowInsetsController
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.PopupWindow
+import androidx.annotation.OptIn
 import androidx.core.graphics.drawable.toDrawable
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -23,6 +24,8 @@ import androidx.media3.ui.PlayerView
 import com.sina.simpleview.library.R
 import androidx.core.net.toUri
 import androidx.media3.common.VideoSize
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.AspectRatioFrameLayout
 
 /**
  * Shows a video inside a PopupWindow using Media3 ExoPlayer.
@@ -31,6 +34,7 @@ import androidx.media3.common.VideoSize
  * @param videoUrl  The URL or URI string of the video to play.
  */
 
+@OptIn(UnstableApi::class)
 fun showVideoInPopup(context: Context, hostView: View, videoUrl: String) {
     require(context is Activity) { "Context must be an Activity" }
 
@@ -42,7 +46,11 @@ fun showVideoInPopup(context: Context, hostView: View, videoUrl: String) {
     val playerView: PlayerView        = popupView.findViewById(R.id.popup_player_view)
     val playerContainer: FrameLayout = popupView.findViewById(R.id.player_container)
     val fullscreenButton: ImageButton = popupView.findViewById(R.id.fullscreen_toggle_button)
-    var hasSetOrientation = false
+    // We no longer auto‐rotate on first frame
+    // var hasSetOrientation = false
+
+    // 2b) Tell ExoPlayer how to scale inside our small popup (letterbox/pillarbox)
+    playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
 
     // 3) Build ExoPlayer
     val player = ExoPlayer.Builder(context).build().also { exoPlayer ->
@@ -52,39 +60,13 @@ fun showVideoInPopup(context: Context, hostView: View, videoUrl: String) {
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
 
-        // 4) Listen for onVideoSizeChanged → rotate + resize popup accordingly
+        // 4) (OPTIONAL) If you still want to know the video size, you can listen,
+        //     but DO NOT force‐rotate the Activity here.
         exoPlayer.addListener(object : Player.Listener {
-            // Use the VideoSize‐based callback (ExoPlayer 2.15+)
             override fun onVideoSizeChanged(videoSize: VideoSize) {
-                super.onVideoSizeChanged(videoSize)
-
-                // Only do this once
-                if (hasSetOrientation) return
-
-                val width = videoSize.width
-                val height = videoSize.height
-
-                if (width <= 0 || height <= 0) {
-                    // We don’t have a valid size yet.
-                    return
-                }
-
-                // Mark that we've already applied orientation
-                hasSetOrientation = true
-
-                // Cast context to Activity so we can call requestedOrientation
-                val activity = (context as? Activity)
-                if (activity == null) {
-                    // If context isn’t an Activity, we can’t rotate—just return.
-                    return
-                }
-
-                // Decide orientation based on aspect ratio
-                if (width > height) {
-                    activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                } else {
-                    activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                }
+                // You could read videoSize.width/height if you like,
+                // but do NOT call activity.requestedOrientation here.
+                // That logic will live in the fullscreen toggle only.
             }
         })
     }
@@ -100,16 +82,16 @@ fun showVideoInPopup(context: Context, hostView: View, videoUrl: String) {
     // 6) Create PopupWindow in the small size
     val popupWindow = PopupWindow(popupView, smallWidth, smallHeight, true).apply {
         isOutsideTouchable = true
-        // Transparent background so we see the rounded corners or shadows if any
+        // Transparent background so we see rounded corners, etc.
         setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
         elevation = 10f
 
         setOnDismissListener {
             // Clean up player on dismiss
             player.release()
-            // Restore default UI (in case they closed while in fullscreen)
+            // Restore system UI (if we dismissed while in fullscreen)
             showSystemUI(context.window.decorView)
-            // Allow sensor‐based rotation again
+            // Allow normal sensor orientation again
             context.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
         }
     }
@@ -123,10 +105,11 @@ fun showVideoInPopup(context: Context, hostView: View, videoUrl: String) {
     fullscreenButton.setOnClickListener {
         if (isFullscreen) {
             // ───── EXIT FULLSCREEN ─────
+
             // 1) Shrink back to small size
             popupWindow.update(smallWidth, smallHeight)
 
-            // 2) Update the container's LayoutParams
+            // 2) Update the container’s LayoutParams
             val params = playerContainer.layoutParams
             params.width  = smallWidth
             params.height = smallHeight
@@ -135,23 +118,24 @@ fun showVideoInPopup(context: Context, hostView: View, videoUrl: String) {
             // 3) Show system UI again
             showSystemUI(context.window.decorView)
 
-            // 4) Switch button icon back
+            // 4) Switch fullscreen icon back to “↔︎” or whatever
             fullscreenButton.setImageResource(R.drawable.ic_fullscreen)
 
-            // 5) Go back to “sensor” orientation so user can rotate normally
+            // 5) Let the orientation sensor run normally again
             context.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
 
             isFullscreen = false
 
         } else {
             // ───── ENTER FULLSCREEN ─────
+
             // 1) Force the popup to occupy MATCH_PARENT × MATCH_PARENT
             popupWindow.update(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
 
-            // 2) Make the player container match_parent so it truly fills all pixels
+            // 2) Make the player container match_parent so the video layer truly fills
             val params = playerContainer.layoutParams
             params.width  = ViewGroup.LayoutParams.MATCH_PARENT
             params.height = ViewGroup.LayoutParams.MATCH_PARENT
@@ -160,16 +144,16 @@ fun showVideoInPopup(context: Context, hostView: View, videoUrl: String) {
             // 3) Hide all system UI (immersive mode)
             hideSystemUI(context.window.decorView)
 
-            // 4) Change the icon to “close”
+            // 4) Change the icon to “✕” (close/fullscreenExit)
             fullscreenButton.setImageResource(R.drawable.ic_close)
 
-            // 5) (Optionally) lock orientation to whatever it currently is,
-            //    so the user doesn’t accidentally rotate mid‐play.
-            //    Usually you pick whichever orientation the video best fits:
+            // 5) Lock orientation to whatever the video’s preferred aspect ratio is:
             val videoSize = player.videoSize
             if (videoSize.width > videoSize.height) {
+                // Landscape video → lock to landscape
                 context.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             } else {
+                // Portrait video → lock to portrait
                 context.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             }
 
@@ -219,3 +203,4 @@ fun showSystemUI(decorView: View) {
         decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
     }
 }
+
