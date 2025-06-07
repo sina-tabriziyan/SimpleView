@@ -7,6 +7,7 @@ package com.sina.spview.extviews
 
 import android.animation.ArgbEvaluator
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -52,6 +53,7 @@ import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
 import androidx.core.view.drawToBitmap
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
@@ -61,7 +63,6 @@ import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil3.ImageLoader
-import coil3.imageLoader
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.CachePolicy
@@ -77,7 +78,6 @@ import com.sina.simpleview.library.R
 import com.sina.spview.extviews.StringExtension.fromURI
 import com.sina.spview.models.ScreenShot
 import com.sina.spview.smpview.views.FontIcon
-import okhttp3.Headers
 import org.jsoup.Jsoup
 import java.io.File
 import java.io.FileOutputStream
@@ -504,6 +504,7 @@ object ViewExtensions {
             animator.start()
         }
     }
+
 
     fun TextView.enableSlideShow() {
         this.isSingleLine = true // Ensure text is a single line
