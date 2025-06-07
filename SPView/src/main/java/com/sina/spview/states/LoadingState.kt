@@ -6,7 +6,8 @@
 package com.sina.spview.states
 
 sealed class LoadingState<out T> {
-    data object Loading : LoadingState<Nothing>()
+    data class Loading(val progress: Int) : LoadingState<Nothing>()
     data class Success<T>(val data: T) : LoadingState<T>()
     data class Error(val exception: Throwable? = null) : LoadingState<Nothing>()
+    data object Idle : LoadingState<Nothing>()
 }
