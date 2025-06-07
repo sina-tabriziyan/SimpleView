@@ -5,6 +5,11 @@
  */
 package com.sina.spview.states
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import okhttp3.ResponseBody
+import retrofit2.Response
+
 sealed class LoadingState<out T> {
     data class Loading(val progress: Int) : LoadingState<Nothing>()
     data class Success<T>(val data: T) : LoadingState<T>()

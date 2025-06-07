@@ -5,91 +5,71 @@
  */
 package com.sina.spview.states
 
+import androidx.media3.common.util.Log
 import com.sina.spview.donwload.DownloadFileUtils
 import com.sina.spview.donwload.ProgressListener
 import kotlinx.coroutines.channels.Channel
 import okhttp3.MediaType
+import okhttp3.RequestBody
 import okhttp3.ResponseBody
+import okhttp3.internal.closeQuietly
 import okio.Buffer
+import okio.BufferedSink
 import okio.BufferedSource
 import okio.ForwardingSource
 import okio.Source
 import okio.buffer
+import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
+import kotlin.ranges.coerceIn
+import kotlin.text.toDouble
 
-class ProgressResponseBody(
-    private val url: String, // URL can be useful for identifying the download
-    private val responseBody: ResponseBody,
-    private val progressListener: ProgressListener
-) : ResponseBody() {
+class ProgressRequestBody(
+    private val file: File,
+    private val contentType: MediaType?,
+    val listener: ProgressListener
+) : RequestBody() {
 
-    private var bufferedSource: BufferedSource? = null
-
-    override fun contentLength(): Long = responseBody.contentLength()
-
-    override fun contentType(): MediaType? = responseBody.contentType()
-
-    override fun source(): BufferedSource {
-        // Use the backing field for lazy initialization correctly
-        if (bufferedSource == null) {
-            bufferedSource = realSource(responseBody.source()).buffer()
-        }
-        return bufferedSource!! // Safe due to the check above
+    interface ProgressListener {
+        fun onProgressUpdate(percentage: Int)
     }
 
-    private fun realSource(source: Source): Source {
-        return object : ForwardingSource(source) {
-            var totalBytesRead = 0L
-            var lastReportedProgressBytes = 0L // To manage progress update frequency
+    override fun contentType(): MediaType? = contentType
 
-            @Throws(IOException::class)
-            override fun read(sink: Buffer, byteCount: Long): Long {
-                val bytesRead = super.read(sink, byteCount)
-                val isDownloadComplete = bytesRead == -1L
+    override fun contentLength(): Long = file.length()
 
-                if (!isDownloadComplete) {
-                    totalBytesRead += bytesRead
-                }
-
-                val contentLength = contentLength() // Cache for efficiency within this call
-
-                // Update progress:
-                // - If download is complete
-                // - Or if enough new bytes have been read since last update
-                // - Or if it's the very first read (totalBytesRead > 0 and lastReportedProgressBytes == 0L)
-                val shouldReportProgress = isDownloadComplete ||
-                        (totalBytesRead > 0 && lastReportedProgressBytes == 0L && !isDownloadComplete) ||
-                        (totalBytesRead - lastReportedProgressBytes >= PROGRESS_UPDATE_THRESHOLD_BYTES && !isDownloadComplete)
-
-
-                if (shouldReportProgress && contentLength > 0) { // Only report if content length is known
-                    val percent = ((totalBytesRead * 100) / contentLength).toInt()
-                    progressListener.update(
-                        url,
-                        percent.coerceIn(0, 100), // Ensure percent is between 0 and 100
-                        totalBytesRead,
-                        contentLength,
-                        isDownloadComplete
-                    )
-                    lastReportedProgressBytes = totalBytesRead
-                } else if (isDownloadComplete) { // Handle case where content length might be unknown but download finishes
-                    progressListener.update(
-                        url,
-                        100, // Assume 100% if done, even if contentLength was -1
-                        totalBytesRead,
-                        contentLength, // Could still be -1
-                        true
-                    )
-                }
-                return bytesRead
+    @Throws(IOException::class)
+    override fun writeTo(sink: BufferedSink) {
+        val fileLength = file.length()
+        if (fileLength == 0L) {
+            listener.onProgressUpdate(100)
+            return
+        }
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        var uploaded: Long = 0
+        var fis: FileInputStream? = null
+        try {
+            fis = FileInputStream(file)
+            var read: Int
+            while (fis.read(buffer).also { read = it } != -1) {
+                uploaded += read.toLong()
+                sink.write(buffer, 0, read)
+                val progress = ((uploaded.toDouble() / fileLength.toDouble()) * 100).toInt()
+                listener.onProgressUpdate(progress.coerceIn(0, 100))
             }
+            if (uploaded == fileLength) { // Ensure 100% is sent if loop finishes exactly
+                listener.onProgressUpdate(100)
+            }
+        } catch (e: Exception) { // Catch generic Exception
+            Log.e("ProgressRequestBody", "Error writing to sink", e)
+            throw e // Re-throw
+        } finally {
+            fis?.closeQuietly()
         }
     }
 
     companion object {
-        // Adjust this threshold as needed (e.g., 1% of total size, or a fixed byte count)
-        private const val PROGRESS_UPDATE_THRESHOLD_BYTES = 100 * 1024 // e.g., Report every 100KB
+        private const val DEFAULT_BUFFER_SIZE = 4096
     }
 }
-
-
