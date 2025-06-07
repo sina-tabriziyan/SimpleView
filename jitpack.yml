@@ -1,0 +1,9 @@
+# jitpack.yml
+jdk:
+  - openjdk17                    # or openjdk11 if you prefer
+
+before_install:
+  - echo "→ Building SimpleView v${VERSION:-TAG} on JitPack CI"
+
+install:
+  - ./gradlew clean assembleRelease -x test
